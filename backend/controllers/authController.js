@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const TOKEN_EXPIRY = '24h';
+const TOKEN_EXPIRY = '100y';
 
 exports.signup = async (req, res) => {
   try {

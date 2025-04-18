@@ -1,5 +1,5 @@
 'use strict';
-/** @type {import('sequelize-cli').Migration} */
+
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('Artists', {
@@ -10,13 +10,29 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       name: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        allowNull: false
       },
-      bio: {
-        type: Sequelize.TEXT
+      biography: {
+        type: Sequelize.TEXT,
+        allowNull: true
       },
       imageUrl: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      genres: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      monthlyListeners: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        defaultValue: 0
+      },
+      verified: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false
       },
       createdAt: {
         allowNull: false,
@@ -25,9 +41,17 @@ module.exports = {
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE
+      },
+      deletedAt: {
+        type: Sequelize.DATE,
+        allowNull: true
       }
     });
+
+    // Add indexes
+    await queryInterface.addIndex('Artists', ['name']);
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('Artists');
   }

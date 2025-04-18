@@ -1,44 +1,33 @@
 'use strict';
-const {
-  Model
-} = require('sequelize');
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
   class Song extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // Song belongs to an Album
+      // Song belongs to Album
       Song.belongsTo(models.Album, {
         foreignKey: 'albumId',
-        onDelete: 'CASCADE'
+        as: 'album'
       });
-      // Song belongs to an Artist
+
+      // Song belongs to Artist
       Song.belongsTo(models.Artist, {
         foreignKey: 'artistId',
-        onDelete: 'CASCADE'
+        as: 'artist'
       });
+
+      // Additional associations can be added later:
+      // - Song can belong to many Playlists
+      // - Song can be liked by many Users
     }
   }
+
   Song.init({
     title: {
       type: DataTypes.STRING,
-      allowNull: false
-    },
-    duration: {
-      type: DataTypes.INTEGER,
       allowNull: false,
       validate: {
-        min: 0
-      }
-    },
-    trackNumber: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      validate: {
-        min: 1
+        notEmpty: true
       }
     },
     albumId: {
@@ -57,16 +46,50 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
+    duration: {
+      type: DataTypes.INTEGER, // Duration in seconds
+      allowNull: false,
+      defaultValue: 0
+    },
+    trackNumber: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1
+    },
     audioUrl: {
       type: DataTypes.STRING,
-      allowNull: true,
-      validate: {
-        isUrl: true
-      }
+      allowNull: true // For future use with actual audio files
+    },
+    explicit: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    popularity: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    },
+    previewUrl: {
+      type: DataTypes.STRING,
+      allowNull: true // 30s preview URL
+    },
+    isPlayable: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
     }
   }, {
     sequelize,
     modelName: 'Song',
+    timestamps: true,
+    paranoid: true,
+    indexes: [
+      {
+        fields: ['albumId']
+      },
+      {
+        fields: ['artistId']
+      }
+    ]
   });
+
   return Song;
 };

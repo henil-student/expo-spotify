@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const { sequelize } = require('./models');
 const authRoutes = require('./routes/auth');
+const musicRoutes = require('./routes/music');
 const os = require('os');
 
 const app = express();
@@ -42,6 +43,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api', musicRoutes); // New music routes
 
 // Health check route with detailed info
 app.get('/health', (req, res) => {
@@ -88,14 +90,22 @@ sequelize.sync().then(() => {
       console.log('\nServer is accessible at these URLs:');
       localIps.forEach(ip => {
         console.log('\nNetwork URLs for', ip + ':');
+        console.log(` - API Base URL: http://${ip}:${port}/api`);
         console.log(` - Health check: http://${ip}:${port}/health`);
-        console.log(` - Auth test: http://${ip}:${port}/api/auth/test`);
+        console.log(` - Documentation: http://${ip}:${port}/api/docs`);
       });
     }
     
-    console.log('\nLocal URLs (for reference):');
-    console.log(` - Health check: http://localhost:${port}/health`);
-    console.log(` - Auth test: http://localhost:${port}/api/auth/test`);
+    console.log('\nAPI Endpoints:');
+    console.log(' - Auth:');
+    console.log('   POST /api/auth/signup');
+    console.log('   POST /api/auth/login');
+    console.log('   POST /api/auth/logout');
+    console.log('\n - Music:');
+    console.log('   GET  /api/artists');
+    console.log('   GET  /api/albums');
+    console.log('   GET  /api/songs');
+    console.log('   GET  /api/songs/popular');
     console.log('\n=========================');
   });
 }).catch(err => {

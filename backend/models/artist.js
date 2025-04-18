@@ -1,47 +1,71 @@
 'use strict';
-const {
-  Model
-} = require('sequelize');
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
   class Artist extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
       // Artist has many Albums
       Artist.hasMany(models.Album, {
         foreignKey: 'artistId',
         as: 'albums'
       });
-      // Artist has many Songs
+
+      // Artist has many Songs through Albums
       Artist.hasMany(models.Song, {
         foreignKey: 'artistId',
         as: 'songs'
       });
     }
   }
+
   Artist.init({
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
+      validate: {
+        notEmpty: true
+      }
     },
-    bio: {
+    biography: {
       type: DataTypes.TEXT,
       allowNull: true
     },
     imageUrl: {
       type: DataTypes.STRING,
+      allowNull: true
+    },
+    genres: {
+      type: DataTypes.STRING, // Comma-separated list of genres
       allowNull: true,
-      validate: {
-        isUrl: true
+      get() {
+        const rawValue = this.getDataValue('genres');
+        return rawValue ? rawValue.split(',') : [];
+      },
+      set(val) {
+        if (Array.isArray(val)) {
+          this.setDataValue('genres', val.join(','));
+        } else {
+          this.setDataValue('genres', val);
+        }
       }
+    },
+    monthlyListeners: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0
+    },
+    verified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
     }
   }, {
     sequelize,
     modelName: 'Artist',
+    // Add timestamps
+    timestamps: true,
+    // Enable soft deletes
+    paranoid: true,
   });
+
   return Artist;
 };
