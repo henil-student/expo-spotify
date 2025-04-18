@@ -1,0 +1,26 @@
+{
+  "development": {
+    "username": "root",
+    "password": null,
+    "database": "spotify_clone",
+    "host": "127.0.0.1",
+    "dialect": "sqlite",
+    "storage": "./db/dev.sqlite"
+  },
+  "test": {
+    "username": "root",
+    "password": null,
+    "database": "spotify_clone_test",
+    "host": "127.0.0.1",
+    "dialect": "sqlite",
+    "storage": "./db/test.sqlite"
+  },
+  "production": {
+    "username": "root",
+    "password": null,
+    "database": "spotify_clone_prod",
+    "host": "127.0.0.1",
+    "dialect": "sqlite",
+    "storage": "./db/prod.sqlite"
+  }
+}
