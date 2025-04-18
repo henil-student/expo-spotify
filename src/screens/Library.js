@@ -1,46 +1,52 @@
-import * as React from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
-import { device, gStyle } from '../constants';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../context/AuthContext';
+import { colors, gStyle } from '../constants';
+import { LOADING_STATES } from '../constants/loading';
+import AuthButton from '../components/AuthButton';
 
-// components
-import LineItemCategory from '../components/LineItemCategory';
-import ScreenHeader from '../components/ScreenHeader';
+const Library = () => {
+  const { logout, loadingState } = useAuth();
 
-// mock data
-import yourLibrary from '../mockdata/menuYourLibrary.json';
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
-function Library() {
   return (
-    <View style={gStyle.container}>
-      <View style={styles.containerHeader}>
-        <ScreenHeader title="Your Library" />
-      </View>
+    <View style={[gStyle.container, styles.container]}>
+      <Text style={[gStyle.textSpotifyBold24, styles.title]}>
+        Library
+      </Text>
 
-      <FlatList
-        contentContainerStyle={styles.containerFlatlist}
-        data={yourLibrary}
-        keyExtractor={({ id }) => id.toString()}
-        renderItem={({ item }) => (
-          <LineItemCategory
-            icon={item.icon}
-            onPress={() => null}
-            title={item.title}
-          />
-        )}
-      />
+      <View style={styles.content}>
+        <AuthButton
+          onPress={handleLogout}
+          disabled={loadingState !== LOADING_STATES.NONE}
+          title={loadingState === LOADING_STATES.LOGOUT ? 'Logging out...' : 'Logout'}
+          variant="secondary"
+        />
+      </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  containerHeader: {
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-    zIndex: 10
+  container: {
+    paddingHorizontal: 24,
+    paddingTop: 24
   },
-  containerFlatlist: {
-    marginTop: device.iPhoneNotch ? 88 : 64
+  title: {
+    color: colors.white,
+    marginBottom: 32
+  },
+  content: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center'
   }
 });
 
