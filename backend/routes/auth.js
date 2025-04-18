@@ -3,6 +3,18 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 
+// Test connection endpoint - no auth required
+router.get('/test', (req, res) => {
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  res.json({
+    status: 'success',
+    message: 'Connection test successful',
+    timestamp: new Date().toISOString(),
+    clientIp,
+    headers: req.headers
+  });
+});
+
 // POST /api/auth/signup
 router.post('/signup', authController.signup);
 

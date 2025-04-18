@@ -1,21 +1,68 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
 import { API_BASE_URL } from '../config/api';
-import { AUTH_ENDPOINTS, AUTH_MESSAGES, AUTH_TIMEOUTS } from '../constants/auth';
+import { AUTH_MESSAGES, AUTH_TIMEOUTS } from '../constants/auth';
 
+// Create axios instance with longer timeout for mobile devices
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: AUTH_TIMEOUTS.REQUEST_TIMEOUT,
+  timeout: Platform.OS === 'web' ? 10000 : 30000, // Longer timeout for mobile
 });
+
+// Add request interceptor for debugging
+api.interceptors.request.use(
+  config => {
+    if (__DEV__) {
+      console.log('API Request:', {
+        url: config.url,
+        method: config.method,
+        baseURL: config.baseURL,
+        headers: config.headers,
+      });
+    }
+    return config;
+  },
+  error => {
+    console.error('API Request Error:', error);
+    return Promise.reject(error);
+  }
+);
 
 // Add response interceptor for better error handling
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error);
-    return Promise.reject(error);
+  response => {
+    if (__DEV__) {
+      console.log('API Response:', {
+        status: response.status,
+        data: response.data,
+      });
+    }
+    return response;
+  },
+  error => {
+    if (__DEV__) {
+      console.error('API Error Details:', {
+        message: error.message,
+        code: error.code,
+        config: error.config,
+        response: error.response?.data,
+      });
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject(AUTH_MESSAGES.CONNECTION_TIMEOUT);
+    }
+
+    if (!error.response) {
+      return Promise.reject(AUTH_MESSAGES.NETWORK_ERROR);
+    }
+
+    return Promise.reject(
+      error.response.data?.message || error.message || AUTH_MESSAGES.SERVER_ERROR
+    );
   }
 );
 
@@ -31,44 +78,38 @@ export const apiService = {
   auth: {
     async login(email, password) {
       try {
-        const response = await api.post(AUTH_ENDPOINTS.LOGIN, { email, password });
+        const response = await api.post('/auth/login', { email, password });
         return response.data;
       } catch (error) {
-        if (error.response) {
-          throw error.response.data.message || AUTH_MESSAGES.LOGIN_ERROR;
-        }
-        throw AUTH_MESSAGES.NETWORK_ERROR;
+        throw error;
       }
     },
 
     async signup(name, email, password) {
       try {
-        const response = await api.post(AUTH_ENDPOINTS.SIGNUP, {
+        const response = await api.post('/auth/signup', {
           name,
           email,
           password
         });
         return response.data;
       } catch (error) {
-        if (error.response) {
-          if (error.response.status === 400 && error.response.data.message.includes('exists')) {
-            throw AUTH_MESSAGES.USER_EXISTS;
-          }
-          throw error.response.data.message || AUTH_MESSAGES.SIGNUP_ERROR;
-        }
-        throw AUTH_MESSAGES.NETWORK_ERROR;
+        throw error;
       }
     },
 
     async logout() {
       try {
-        const response = await api.post(AUTH_ENDPOINTS.LOGOUT);
+        const response = await api.post('/auth/logout');
         return response.data;
       } catch (error) {
         console.error('Logout error:', error);
-        // We don't throw here since logout should succeed even if the API call fails
+        // Don't throw on logout errors
         return { message: AUTH_MESSAGES.LOGOUT_SUCCESS };
       }
     }
   }
 };
+
+// Export for direct use if needed
+export { api };
