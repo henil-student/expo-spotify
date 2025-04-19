@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react'; // Removed useContext
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View, Image } from 'react-native'; // Import Image
 import { colors, device, fonts, gStyle } from '../constants';
-// Import the custom hook instead of PlayerContext directly
 import { usePlayer } from '../context/PlayerContext'; 
 import { api } from '../utils/api'; 
 
 // components
-import LinearGradient from '../components/LinearGradient';
+// import LinearGradient from '../components/LinearGradient'; // Remove LinearGradient import
 import LineItemSong from '../components/LineItemSong';
 import ScreenHeader from '../components/ScreenHeader';
-import TouchIcon from '../components/TouchIcon';
+// Removed TouchIcon import as it's not used here
+
+// Default placeholder image
+const placeholderImage = require('../assets/images/albums/placeholder.jpg');
 
 const Album = ({ navigation, route }) => {
   const { albumId } = route.params; 
 
-  // Use the custom hook to get context values
-  // FIX: Destructure loadTrack instead of handleSongPress
   const { currentTrack, loadTrack } = usePlayer(); 
 
   const [albumData, setAlbumData] = useState(null);
@@ -36,7 +36,6 @@ const Album = ({ navigation, route }) => {
       setAlbumData(null); 
 
       try {
-        // Base URL is /api, route is /albums/:id
         const response = await api.get(`/albums/${albumId}`); 
         console.log('API Response:', response.data); 
         
@@ -60,24 +59,17 @@ const Album = ({ navigation, route }) => {
     fetchAlbumData();
   }, [albumId]); 
 
-  // Handle song press - use the loadTrack function from the context hook
   const handleSongPress = (song) => {
-    // Map the API song data to the structure expected by loadTrack (if different)
-    // Based on PlayerContext, loadTrack seems to expect the whole track object.
-    // Let's ensure the object we pass includes the necessary fields like id, title, previewUrl.
     const trackForContext = {
       id: song.id,
       title: song.title,
       artist: albumData?.artist?.name || 'Unknown Artist', 
-      previewUrl: song.previewUrl, // Make sure this field name matches context expectation
+      previewUrl: song.previewUrl, 
       album: albumData?.title || 'Unknown Album',
       artwork: albumData?.coverUrl || null 
     };
     console.log('Loading track:', trackForContext);
-    // Call the context function obtained from the hook
     loadTrack(trackForContext); 
-    // Note: loadTrack might not automatically play, depending on its implementation.
-    // We might need to call play() separately or modify loadTrack.
   };
 
   if (isLoading) {
@@ -100,6 +92,8 @@ const Album = ({ navigation, route }) => {
   }
 
   const { title, artist, coverUrl, songs } = albumData; 
+  // Determine image source, use placeholder if coverUrl is missing
+  const imageSource = coverUrl ? { uri: coverUrl } : placeholderImage;
 
   return (
     <View style={gStyle.container}>
@@ -111,7 +105,12 @@ const Album = ({ navigation, route }) => {
         keyExtractor={(item) => item.id.toString()} 
         ListHeaderComponent={
           <View style={styles.containerHeader}>
-            <LinearGradient fill={coverUrl} height={200} /> 
+            {/* FIX: Replace LinearGradient with Image */}
+            <Image 
+              source={imageSource} 
+              style={styles.albumCover} 
+              resizeMode="cover" // Ensure image covers the area
+            />
             <View style={styles.containerTitle}>
               <Text ellipsizeMode="tail" numberOfLines={1} style={styles.title}>
                 {title} 
@@ -124,11 +123,11 @@ const Album = ({ navigation, route }) => {
         }
         renderItem={({ item, index }) => (
           <LineItemSong
-            // Use currentTrack from the hook (context now uses currentTrack)
             active={currentTrack?.id === item.id} 
             downloaded={false} 
-            explicit={false} // TODO: Check API for explicit flag
-            imageUri={coverUrl} 
+            explicit={false} 
+            // Pass the correct image source for list items
+            imageUri={coverUrl} // LineItemSong expects a URI string or null
             onPress={() => handleSongPress(item)} 
             songData={{
               album: title,
@@ -150,11 +149,17 @@ Album.propTypes = {
 
 const styles = StyleSheet.create({
   containerHeader: {
-    marginBottom: 16
+    marginBottom: 16,
+    alignItems: 'center', // Center header content horizontally
+  },
+  albumCover: {
+    width: 200, // Define size for the album cover image
+    height: 200,
+    marginBottom: 16, // Add space below the image
   },
   containerTitle: {
     ...gStyle.pH16,
-    marginTop: 16
+    // Removed marginTop as spacing is handled by albumCover marginBottom
   },
   title: {
     color: colors.white,
