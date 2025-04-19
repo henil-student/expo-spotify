@@ -44,7 +44,8 @@ const BarMusicPlayer = ({ navigation }) => {
 
   const handlePressOpenModal = () => {
     console.log('Open music player modal');
-    // navigation.navigate('ModalMusicPlayer');
+    // FIX: Uncomment navigation to the modal
+    navigation.navigate('ModalMusicPlayer'); 
   };
 
   const onSlidingStart = () => {
@@ -73,7 +74,7 @@ const BarMusicPlayer = ({ navigation }) => {
   return (
     <TouchableOpacity
       activeOpacity={1}
-      onPress={handlePressOpenModal}
+      onPress={handlePressOpenModal} // This now navigates
       style={styles.container}
     >
       <Slider

@@ -13,6 +13,9 @@ module.exports = {
       return acc;
     }, {});
 
+    // Use a valid test URL for all previews temporarily
+    const testPreviewUrl = 'https://storage.googleapis.com/exoplayer-test-media-0/Jazz_In_Paris.mp3';
+
     return queryInterface.bulkInsert('Songs', [
       // Abbey Road Songs
       {
@@ -21,7 +24,7 @@ module.exports = {
         artistId: albumMap['Abbey Road'].artistId,
         duration: 259,
         trackNumber: 1,
-        previewUrl: 'https://example.com/previews/come-together.mp3',
+        previewUrl: testPreviewUrl, // Updated
         popularity: 90,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -32,7 +35,7 @@ module.exports = {
         artistId: albumMap['Abbey Road'].artistId,
         duration: 183,
         trackNumber: 2,
-        previewUrl: 'https://example.com/previews/something.mp3',
+        previewUrl: testPreviewUrl, // Updated
         popularity: 88,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -45,7 +48,7 @@ module.exports = {
         artistId: albumMap['The Dark Side of the Moon'].artistId,
         duration: 163,
         trackNumber: 1,
-        previewUrl: 'https://example.com/previews/breathe.mp3',
+        previewUrl: testPreviewUrl, // Updated
         popularity: 85,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -56,7 +59,7 @@ module.exports = {
         artistId: albumMap['The Dark Side of the Moon'].artistId,
         duration: 421,
         trackNumber: 2,
-        previewUrl: 'https://example.com/previews/time.mp3',
+        previewUrl: testPreviewUrl, // Updated
         popularity: 92,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -69,7 +72,7 @@ module.exports = {
         artistId: albumMap['A Night at the Opera'].artistId,
         duration: 354,
         trackNumber: 1,
-        previewUrl: 'https://example.com/previews/bohemian-rhapsody.mp3',
+        previewUrl: testPreviewUrl, // Updated
         popularity: 98,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -80,7 +83,7 @@ module.exports = {
         artistId: albumMap['A Night at the Opera'].artistId,
         duration: 219,
         trackNumber: 2,
-        previewUrl: 'https://example.com/previews/love-of-my-life.mp3',
+        previewUrl: testPreviewUrl, // Updated
         popularity: 87,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -93,7 +96,7 @@ module.exports = {
         artistId: albumMap['The Wall'].artistId,
         duration: 239,
         trackNumber: 1,
-        previewUrl: 'https://example.com/previews/another-brick.mp3',
+        previewUrl: testPreviewUrl, // Updated
         popularity: 95,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -104,7 +107,7 @@ module.exports = {
         artistId: albumMap['The Wall'].artistId,
         duration: 382,
         trackNumber: 2,
-        previewUrl: 'https://example.com/previews/comfortably-numb.mp3',
+        previewUrl: testPreviewUrl, // Updated
         popularity: 94,
         createdAt: new Date(),
         updatedAt: new Date()

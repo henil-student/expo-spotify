@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View, Image } from 'react-native'; // Import Image
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View, Image } from 'react-native';
 import { colors, device, fonts, gStyle } from '../constants';
 import { usePlayer } from '../context/PlayerContext'; 
 import { api } from '../utils/api'; 
 
 // components
-// import LinearGradient from '../components/LinearGradient'; // Remove LinearGradient import
 import LineItemSong from '../components/LineItemSong';
 import ScreenHeader from '../components/ScreenHeader';
-// Removed TouchIcon import as it's not used here
 
 // Default placeholder image
 const placeholderImage = require('../assets/images/albums/placeholder.jpg');
@@ -17,6 +15,7 @@ const placeholderImage = require('../assets/images/albums/placeholder.jpg');
 const Album = ({ navigation, route }) => {
   const { albumId } = route.params; 
 
+  // Get context functions including the updated loadTrack
   const { currentTrack, loadTrack } = usePlayer(); 
 
   const [albumData, setAlbumData] = useState(null);
@@ -59,17 +58,37 @@ const Album = ({ navigation, route }) => {
     fetchAlbumData();
   }, [albumId]); 
 
-  const handleSongPress = (song) => {
-    const trackForContext = {
-      id: song.id,
-      title: song.title,
+  // Handle song press - pass track, queue, and index to loadTrack
+  const handleSongPress = (song, index) => {
+    // Ensure albumData and songs exist before proceeding
+    if (!albumData || !albumData.songs) {
+        console.error("Album data or songs not available for handleSongPress");
+        return;
+    }
+
+    // Map the entire album song list to the format expected by the context
+    const trackQueue = albumData.songs.map(s => ({
+      id: s.id,
+      title: s.title,
       artist: albumData?.artist?.name || 'Unknown Artist', 
-      previewUrl: song.previewUrl, 
+      previewUrl: s.previewUrl, 
       album: albumData?.title || 'Unknown Album',
       artwork: albumData?.coverUrl || null 
-    };
-    console.log('Loading track:', trackForContext);
-    loadTrack(trackForContext); 
+    }));
+
+    // Get the specific track object for the pressed song (already mapped)
+    const selectedTrack = trackQueue[index]; 
+
+    if (!selectedTrack) {
+        console.error(`Could not find selected track at index ${index}`);
+        return;
+    }
+
+    console.log(`Loading track at index ${index}:`, selectedTrack);
+    console.log('Passing queue:', trackQueue);
+
+    // Call the updated context function with track, queue, and index
+    loadTrack(selectedTrack, trackQueue, index); 
   };
 
   if (isLoading) {
@@ -92,7 +111,6 @@ const Album = ({ navigation, route }) => {
   }
 
   const { title, artist, coverUrl, songs } = albumData; 
-  // Determine image source, use placeholder if coverUrl is missing
   const imageSource = coverUrl ? { uri: coverUrl } : placeholderImage;
 
   return (
@@ -105,11 +123,10 @@ const Album = ({ navigation, route }) => {
         keyExtractor={(item) => item.id.toString()} 
         ListHeaderComponent={
           <View style={styles.containerHeader}>
-            {/* FIX: Replace LinearGradient with Image */}
             <Image 
               source={imageSource} 
               style={styles.albumCover} 
-              resizeMode="cover" // Ensure image covers the area
+              resizeMode="cover" 
             />
             <View style={styles.containerTitle}>
               <Text ellipsizeMode="tail" numberOfLines={1} style={styles.title}>
@@ -121,14 +138,13 @@ const Album = ({ navigation, route }) => {
             </View>
           </View>
         }
-        renderItem={({ item, index }) => (
+        renderItem={({ item, index }) => ( // Get index here
           <LineItemSong
             active={currentTrack?.id === item.id} 
             downloaded={false} 
             explicit={false} 
-            // Pass the correct image source for list items
-            imageUri={coverUrl} // LineItemSong expects a URI string or null
-            onPress={() => handleSongPress(item)} 
+            imageUri={coverUrl} 
+            onPress={() => handleSongPress(item, index)} // Pass index to handler
             songData={{
               album: title,
               artist: artist?.name || 'Unknown Artist',
@@ -150,16 +166,15 @@ Album.propTypes = {
 const styles = StyleSheet.create({
   containerHeader: {
     marginBottom: 16,
-    alignItems: 'center', // Center header content horizontally
+    alignItems: 'center', 
   },
   albumCover: {
-    width: 200, // Define size for the album cover image
+    width: 200, 
     height: 200,
-    marginBottom: 16, // Add space below the image
+    marginBottom: 16, 
   },
   containerTitle: {
     ...gStyle.pH16,
-    // Removed marginTop as spacing is handled by albumCover marginBottom
   },
   title: {
     color: colors.white,

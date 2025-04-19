@@ -87,3 +87,10 @@ backend/.env
 backend/db/*.sqlite
 backend/db/*.sqlite3
 backend/logs/
+plan.md
+yarn.lock
+backend/API.md
+backend/LICENSE
+backend/README.md
+backend/spotify-clone.postman_collection.json
+backend/spotify-clone.postman_environment.json
