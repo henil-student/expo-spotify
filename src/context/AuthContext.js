@@ -51,7 +51,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       setIsAuthenticated(false);
-      showToast(AUTH_MESSAGES.SERVER_ERROR);
+      // Use updated showToast signature
+      showToast('error', 'Auth Error', AUTH_MESSAGES.SERVER_ERROR); 
     } finally {
       setLoadingState(LOADING_STATES.NONE);
       setLoading(false);
@@ -68,10 +69,12 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       setToken(authToken);
       setIsAuthenticated(true);
-      showToast(AUTH_MESSAGES.LOGIN_SUCCESS);
+      // Use updated showToast signature
+      showToast('success', 'Login Successful', AUTH_MESSAGES.LOGIN_SUCCESS); 
     } catch (error) {
       console.error('Error during login:', error);
-      showToast(AUTH_MESSAGES.SERVER_ERROR);
+      // Use updated showToast signature
+      showToast('error', 'Login Error', AUTH_MESSAGES.SERVER_ERROR); 
       throw error;
     } finally {
       setLoadingState(LOADING_STATES.NONE);
@@ -91,10 +94,12 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setToken(null);
       setIsAuthenticated(false);
-      showToast(AUTH_MESSAGES.LOGOUT_SUCCESS);
+      // Use updated showToast signature
+      showToast('success', 'Logout Successful', AUTH_MESSAGES.LOGOUT_SUCCESS); 
     } catch (error) {
       console.error('Error during logout:', error);
-      showToast(AUTH_MESSAGES.SERVER_ERROR);
+      // Use updated showToast signature
+      showToast('error', 'Logout Error', AUTH_MESSAGES.SERVER_ERROR); 
     } finally {
       setLoadingState(LOADING_STATES.NONE);
     }

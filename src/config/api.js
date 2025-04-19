@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 
 // Get your computer's IP address (usually starts with 192.168.x.x or similar)
 // Replace this with your actual local IP address
-const LOCAL_IP = '192.168.29.103'; // Example IP, replace with your computer's IP
+const LOCAL_IP = '192.168.29.103'; // Example IP, replace with your computer's IP - Removed leading space
 
 // API Configuration
 export const API_BASE_URL = Platform.select({
@@ -20,7 +20,7 @@ export const API_BASE_URL = Platform.select({
 export const API_VERSION = 'v1';
 
 // Timeout configurations
-export const REQUEST_TIMEOUT = 10000; // 10 seconds
+export const REQUEST_TIMEOUT = 30000; // Increased timeout to 30 seconds
 
 // Headers
 export const DEFAULT_HEADERS = {
@@ -38,6 +38,14 @@ export const ENDPOINTS = {
   USER: {
     PROFILE: '/user/profile',
     UPDATE: '/user/update'
+  },
+  MUSIC: { // Added Music endpoints for clarity
+    ALBUMS: '/albums',
+    ALBUM_BY_ID: (id) => `/albums/${id}`,
+    ARTISTS: '/artists',
+    ARTIST_BY_ID: (id) => `/artists/${id}`,
+    SONGS: '/songs',
+    SONG_BY_ID: (id) => `/songs/${id}`
   }
 };
 

@@ -21,9 +21,12 @@ const theLonesomeCrowdedWest = require('../assets/images/albums/the-lonesome-cro
 const whenWeAllFallAsleep = require('../assets/images/albums/when-we-all-fall-asleep.jpg');
 const wishYouWereHere = require('../assets/images/albums/wish-you-where-here.jpg');
 
+// Removed requires for non-existent icons (play, pause, back, etc.)
+
 export default {
   user,
 
+  // albums
   blankFaceLp,
   bornToDie,
   comeAroundSundown,
@@ -39,5 +42,7 @@ export default {
   theLegendOfMrRager,
   theLonesomeCrowdedWest,
   whenWeAllFallAsleep,
-  wishYouWereHere
+  wishYouWereHere,
+
+  // Removed exports for non-existent icons
 };

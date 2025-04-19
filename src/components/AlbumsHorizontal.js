@@ -1,41 +1,35 @@
-import * as React from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { colors, gStyle, images } from '../constants';
+import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { colors, fonts, gStyle } from '../constants';
 
-function AlbumsHorizontal({ data, heading, tagline }) {
-  const navigation = useNavigation();
+// Default placeholder image
+const placeholderImage = require('../assets/images/albums/placeholder.jpg');
+
+const AlbumsHorizontal = ({ data, heading, onPress }) => {
+  // Filter out items without a valid ID
+  const validData = data.filter(item => item && item.id);
 
   return (
     <View style={styles.container}>
       {heading && <Text style={styles.heading}>{heading}</Text>}
-      {tagline && <Text style={styles.tagline}>{tagline}</Text>}
 
       <FlatList
         contentContainerStyle={styles.containerContent}
-        data={data}
+        data={validData}
         horizontal
-        keyExtractor={({ id }) => id.toString()}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity
             activeOpacity={gStyle.activeOpacity}
             hitSlop={{ top: 10, left: 10, bottom: 10, right: 10 }}
-            onPress={() => navigation.navigate('Album', { title: item.title })}
+            onPress={() => onPress(item.id)}
             style={styles.item}
           >
-            <View style={styles.image}>
-              {item.image && (
-                <Image source={images[item.image]} style={styles.image} />
-              )}
-            </View>
+            <Image
+              source={item.coverUrl ? { uri: item.coverUrl } : placeholderImage}
+              style={styles.image}
+            />
             <Text style={styles.title}>{item.title}</Text>
           </TouchableOpacity>
         )}
@@ -43,25 +37,24 @@ function AlbumsHorizontal({ data, heading, tagline }) {
       />
     </View>
   );
-}
+};
 
 AlbumsHorizontal.defaultProps = {
-  heading: null,
-  tagline: null
+  heading: null
 };
 
 AlbumsHorizontal.propTypes = {
   // required
   data: PropTypes.array.isRequired,
+  onPress: PropTypes.func.isRequired,
 
   // optional
-  heading: PropTypes.string,
-  tagline: PropTypes.string
+  heading: PropTypes.string
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 32,
+    marginBottom: 24,
     width: '100%'
   },
   containerContent: {
@@ -71,13 +64,8 @@ const styles = StyleSheet.create({
     ...gStyle.textSpotifyBold18,
     color: colors.white,
     paddingBottom: 6,
-    textAlign: 'center'
-  },
-  tagline: {
-    ...gStyle.textSpotify12,
-    color: colors.greyInactive,
-    paddingBottom: 6,
-    textAlign: 'center'
+    marginLeft: 16,
+    marginBottom: 6,
   },
   item: {
     marginRight: 16,
@@ -86,12 +74,12 @@ const styles = StyleSheet.create({
   image: {
     backgroundColor: colors.greyLight,
     height: 148,
-    width: 148
+    width: 148,
+    marginBottom: 8,
   },
   title: {
     ...gStyle.textSpotifyBold12,
     color: colors.white,
-    marginTop: 4,
     textAlign: 'center'
   }
 });

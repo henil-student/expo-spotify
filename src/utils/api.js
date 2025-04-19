@@ -108,6 +108,56 @@ export const apiService = {
         return { message: AUTH_MESSAGES.LOGOUT_SUCCESS };
       }
     }
+  },
+  music: {
+    async getAllAlbums() {
+      try {
+        const response = await api.get('/albums');
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+    async getAlbumById(id) {
+      try {
+        const response = await api.get(`/albums/${id}`);
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+    async getAllArtists() {
+      try {
+        const response = await api.get('/artists');
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+    async getArtistById(id) {
+      try {
+        const response = await api.get(`/artists/${id}`);
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+    async getAllSongs() {
+      try {
+        const response = await api.get('/songs');
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+    async getPopularSongs() {
+      try {
+        const response = await api.get('/songs/popular');
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    }
   }
 };
 

@@ -1,156 +1,172 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Animated,
+  ActivityIndicator,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
-import { colors, device, gStyle } from '../constants';
+import { colors, gStyle } from '../constants';
+import { apiService } from '../utils/api';
+import { useToast } from '../context/ToastContext'; // Import useToast hook
 
 // components
-import PlaylistItem from '../components/PlaylistItem';
-import TouchIcon from '../components/TouchIcon';
+import ScreenHeader from '../components/ScreenHeader';
+import LineItemCategory from '../components/LineItemCategory';
 
-// icons
-import SvgSearch from '../icons/Svg.Search';
+const Search = () => {
+  const { showToast } = useToast(); // Use the custom hook
+  const [loading, setLoading] = useState(true);
+  const [topGenres, setTopGenres] = useState([]); // Using artists as genres for now
+  const [browseAll, setBrowseAll] = useState([]); // Using albums for browse all
+  const [error, setError] = useState(null);
 
-// mock data
-import browseAll from '../mockdata/searchBrowseAll.json';
-import topGenres from '../mockdata/searchTopGenres.json';
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [artists, albums] = await Promise.all([
+          apiService.music.getAllArtists(),
+          apiService.music.getAllAlbums()
+        ]);
 
-function Search() {
-  const scrollY = React.useRef(new Animated.Value(0)).current;
+        // Map artists to genre format (using artist name as genre title)
+        setTopGenres(artists.map(artist => ({
+          id: artist.id.toString(),
+          title: artist.name,
+          color: colors.brandPrimary // Assign a default color or generate dynamically
+        })).slice(0, 4)); // Limit to 4 for top genres
 
-  // search start (24 horizontal padding )
-  const searchStart = device.width - 48;
-  const searchEnd = device.width - 88;
+        // Map albums to category format
+        setBrowseAll(albums.map(album => ({
+          id: album.id.toString(),
+          title: album.title,
+          color: colors.info, // Assign a default color or generate dynamically
+          image: album.coverUrl
+        })));
 
-  const opacity = scrollY.interpolate({
-    inputRange: [0, 48],
-    outputRange: [searchStart, searchEnd],
-    extrapolate: 'clamp'
-  });
+      } catch (err) {
+        console.error('Error fetching search data:', err);
+        const errorMessage = typeof err === 'string' ? err : 'Failed to load search categories.';
+        setError(errorMessage);
+        showToast('error', 'Load Failed', errorMessage); // Use updated signature
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [showToast]); // Dependency array remains the same
+
+  const handleCategoryPress = (item) => {
+    // TODO: Navigate to a genre/category screen or album screen
+    console.log('Category pressed:', item.title);
+    showToast('info', 'Navigate', `Navigating to ${item.title}`);
+  };
+
+  if (loading) {
+    return (
+      <View style={[gStyle.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[gStyle.container, styles.errorContainer]}>
+        <Text style={styles.errorText}>{error}</Text>
+        {/* Optionally add a retry button here */}
+      </View>
+    );
+  }
 
   return (
-    <React.Fragment>
-      <Animated.ScrollView
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
-        style={gStyle.container}
-      >
-        <View style={gStyle.spacer11} />
-        <View style={styles.containerSearchBar}>
-          <Animated.View style={{ width: opacity }}>
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={() => null}
-              style={styles.searchPlaceholder}
-            >
-              <View style={gStyle.mR1}>
-                <SvgSearch />
-              </View>
-              <Text style={styles.searchPlaceholderText}>
-                Artists, songs or podcasts
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
+    <View style={gStyle.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <ScreenHeader title="Search" />
 
-        <Text style={styles.sectionHeading}>Your top genres</Text>
+        <TouchableOpacity
+          activeOpacity={gStyle.activeOpacity}
+          onPress={() => null} // TODO: Implement search input focus/navigation
+          style={styles.searchPlaceholder}
+        >
+          <Text style={styles.searchPlaceholderText}>Artists, songs, or podcasts</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.heading}>Your top genres</Text>
         <View style={styles.containerRow}>
-          {Object.keys(topGenres).map((index) => {
-            const item = topGenres[index];
-
-            return (
-              <View key={item.id} style={styles.containerColumn}>
-                <PlaylistItem
-                  bgColor={item.color}
-                  onPress={() => null}
-                  title={item.title}
-                />
-              </View>
-            );
-          })}
+          {topGenres.map((item) => (
+            <LineItemCategory
+              key={item.id}
+              bgColor={item.color}
+              onPress={() => handleCategoryPress(item)}
+              title={item.title}
+            />
+          ))}
         </View>
 
-        <Text style={styles.sectionHeading}>Browse all</Text>
+        <Text style={styles.heading}>Browse all</Text>
         <View style={styles.containerRow}>
-          {Object.keys(browseAll).map((index) => {
-            const item = browseAll[index];
-
-            return (
-              <View key={item.id} style={styles.containerColumn}>
-                <PlaylistItem
-                  bgColor={item.color}
-                  onPress={() => null}
-                  title={item.title}
-                />
-              </View>
-            );
-          })}
+          {browseAll.map((item) => (
+            <LineItemCategory
+              key={item.id}
+              bgColor={item.color}
+              onPress={() => handleCategoryPress(item)}
+              title={item.title}
+              image={item.image} // Pass image URL if available
+            />
+          ))}
         </View>
-      </Animated.ScrollView>
-
-      <View style={styles.iconRight}>
-        <TouchIcon
-          icon={<FontAwesome color={colors.white} name="microphone" />}
-          onPress={() => null}
-        />
-      </View>
-    </React.Fragment>
+        <View style={gStyle.spacer24} />
+      </ScrollView>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  containerSearchBar: {
-    ...gStyle.pH3,
-    backgroundColor: colors.blackBg,
-    paddingBottom: 16,
-    paddingTop: device.iPhoneNotch ? 64 : 24
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1, // Ensure it takes full height
+  },
+  errorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    flex: 1, // Ensure it takes full height
+  },
+  errorText: {
+    color: colors.white, // Use white for better visibility
+    fontSize: 16,
+    textAlign: 'center',
   },
   searchPlaceholder: {
-    alignItems: 'center',
     backgroundColor: colors.white,
     borderRadius: 6,
-    flexDirection: 'row',
-    paddingLeft: 16,
-    paddingVertical: 16
+    height: 50,
+    justifyContent: 'center',
+    marginBottom: 16,
+    marginHorizontal: 16,
+    paddingLeft: 16
   },
   searchPlaceholderText: {
-    ...gStyle.textSpotify16,
+    ...gStyle.textSpotifyBold16,
     color: colors.blackBg
   },
-  sectionHeading: {
+  heading: {
     ...gStyle.textSpotifyBold18,
     color: colors.white,
-    marginBottom: 24,
-    marginLeft: 24,
-    marginTop: 16
+    marginHorizontal: 16,
+    marginBottom: 16
   },
   containerRow: {
-    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginLeft: 24
-  },
-  containerColumn: {
-    width: '50%'
-  },
-  iconRight: {
-    alignItems: 'center',
-    height: 28,
-    justifyContent: 'center',
-    position: 'absolute',
-    right: 24,
-    top: device.web ? 40 : 78,
-    width: 28
+    justifyContent: 'space-between',
+    marginHorizontal: 16
   }
 });
 

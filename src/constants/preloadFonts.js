@@ -1,12 +1,9 @@
-// app fonts
-const spotifyLight = require('../assets/fonts/spotify-light.ttf');
-const spotifyRegular = require('../assets/fonts/spotify-regular.ttf');
-const spotifyBold = require('../assets/fonts/spotify-bold.ttf');
+// app fonts - Export a map directly for Font.loadAsync
+// Key: Font family name (string) used in styles
+// Value: require statement for the font file
 
-export default [
-  {
-    spotifyLight,
-    spotifyRegular,
-    spotifyBold
-  }
-];
+export default {
+  'spotifyLight': require('../assets/fonts/spotify-light.ttf'),
+  'spotifyRegular': require('../assets/fonts/spotify-regular.ttf'),
+  'spotifyBold': require('../assets/fonts/spotify-bold.ttf')
+};

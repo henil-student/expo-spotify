@@ -9,6 +9,7 @@ import LoadingScreen from '../screens/LoadingScreen';
 // context
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
+import { PlayerProvider } from '../context/PlayerContext'; // Import PlayerProvider
 
 // navigation
 import TabNavigation from './TabNavigation';
@@ -31,7 +32,6 @@ function RootStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isAuthenticated ? (
-        // Auth Stack
         <>
           <Stack.Screen 
             name="Login" 
@@ -51,7 +51,6 @@ function RootStack() {
           />
         </>
       ) : (
-        // Main App Stack
         <>
           <Stack.Screen name="MainTab" component={TabNavigation} />
           <Stack.Screen
@@ -80,16 +79,18 @@ const AppNavigator = () => {
     <ErrorBoundary>
       <ToastProvider>
         <AuthProvider>
-          <NavigationContainer
-            theme={DarkTheme}
-            onStateChange={(state) => {
-              if (__DEV__) {
-                console.debug('Navigation state changed:', state);
-              }
-            }}
-          >
-            <RootStack />
-          </NavigationContainer>
+          <PlayerProvider>
+            <NavigationContainer
+              theme={DarkTheme}
+              onStateChange={(state) => {
+                if (__DEV__) {
+                  console.debug('Navigation state changed:', state);
+                }
+              }}
+            >
+              <RootStack />
+            </NavigationContainer>
+          </PlayerProvider>
         </AuthProvider>
       </ToastProvider>
     </ErrorBoundary>

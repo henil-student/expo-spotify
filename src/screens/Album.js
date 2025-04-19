@@ -1,349 +1,180 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react'; // Removed useContext
 import PropTypes from 'prop-types';
-import {
-  Alert,
-  Animated,
-  Image,
-  StyleSheet,
-  Switch,
-  Text,
-  View
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { colors, device, gStyle, images } from '../constants';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { colors, device, fonts, gStyle } from '../constants';
+// Import the custom hook instead of PlayerContext directly
+import { usePlayer } from '../context/PlayerContext'; 
+import { api } from '../utils/api'; 
 
 // components
 import LinearGradient from '../components/LinearGradient';
 import LineItemSong from '../components/LineItemSong';
+import ScreenHeader from '../components/ScreenHeader';
 import TouchIcon from '../components/TouchIcon';
-import TouchText from '../components/TouchText';
 
-// mock data
-import albums from '../mockdata/albums';
+const Album = ({ navigation, route }) => {
+  const { albumId } = route.params; 
 
-// context
-import Context from '../context';
+  // Use the custom hook to get context values
+  // FIX: Destructure loadTrack instead of handleSongPress
+  const { currentTrack, loadTrack } = usePlayer(); 
 
-function Album({ navigation, route }) {
-  const { title } = route.params;
+  const [albumData, setAlbumData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // get main app state
-  const { currentSongData, showMusicBar, updateState } =
-    React.useContext(Context);
+  useEffect(() => {
+    const fetchAlbumData = async () => {
+      if (!albumId) {
+        setError('Album ID is missing');
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(true);
+      setError(null);
+      setAlbumData(null); 
 
-  // local state
-  const [downloaded, setDownloaded] = React.useState(false);
-  const [song, setSong] = React.useState(currentSongData.title);
-  const scrollY = React.useRef(new Animated.Value(0)).current;
+      try {
+        // Base URL is /api, route is /albums/:id
+        const response = await api.get(`/albums/${albumId}`); 
+        console.log('API Response:', response.data); 
+        
+        if (response.data && response.data.id && response.data.songs) {
+           setAlbumData(response.data);
+        } else {
+           throw new Error('Invalid data structure received from API');
+        }
 
-  // ui state
-  const album = albums[title] || null;
+      } catch (err) {
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch album data';
+        console.error('API Error:', err);
+        console.error('API Error Details:', JSON.stringify(err)); 
+        setError(errorMessage);
+        Alert.alert('Error', errorMessage); 
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const onToggleDownloaded = (val) => {
-    // if web
-    if (device.web) {
-      setDownloaded(val);
+    fetchAlbumData();
+  }, [albumId]); 
 
-      return;
-    }
-
-    // remove downloads alert
-    if (val === false) {
-      Alert.alert(
-        'Remove from Downloads?',
-        "You won't be able to play this offline.",
-        [
-          { text: 'Cancel' },
-          {
-            onPress: () => {
-              setDownloaded(false);
-            },
-            text: 'Remove'
-          }
-        ],
-        { cancelable: false }
-      );
-    } else {
-      setDownloaded(val);
-    }
+  // Handle song press - use the loadTrack function from the context hook
+  const handleSongPress = (song) => {
+    // Map the API song data to the structure expected by loadTrack (if different)
+    // Based on PlayerContext, loadTrack seems to expect the whole track object.
+    // Let's ensure the object we pass includes the necessary fields like id, title, previewUrl.
+    const trackForContext = {
+      id: song.id,
+      title: song.title,
+      artist: albumData?.artist?.name || 'Unknown Artist', 
+      previewUrl: song.previewUrl, // Make sure this field name matches context expectation
+      album: albumData?.title || 'Unknown Album',
+      artwork: albumData?.coverUrl || null 
+    };
+    console.log('Loading track:', trackForContext);
+    // Call the context function obtained from the hook
+    loadTrack(trackForContext); 
+    // Note: loadTrack might not automatically play, depending on its implementation.
+    // We might need to call play() separately or modify loadTrack.
   };
 
-  const onChangeSong = (songData) => {
-    // update local state
-    setSong(songData.title);
-
-    // update main state
-    updateState('currentSongData', songData);
-  };
-
-  // album data not set?
-  if (album === null) {
+  if (isLoading) {
     return (
       <View style={[gStyle.container, gStyle.flexCenter]}>
-        <Text style={{ color: colors.white }}>{`Album: ${title}`}</Text>
+        <ActivityIndicator color={colors.white} />
       </View>
     );
   }
 
-  const stickyArray = device.web ? [] : [0];
-  const headingRange = device.web ? [140, 200] : [230, 280];
-  const shuffleRange = device.web ? [40, 80] : [40, 80];
+  if (error || !albumData) {
+    return (
+      <View style={[gStyle.container, gStyle.flexCenter, { padding: 20 }]}>
+         <ScreenHeader navigation={navigation} title="Error" showBack={true} />
+         <Text style={{ color: colors.white, textAlign: 'center', marginTop: 20 }}>
+           {error || 'Could not load album data.'}
+         </Text>
+      </View>
+    );
+  }
 
-  const opacityHeading = scrollY.interpolate({
-    inputRange: headingRange,
-    outputRange: [0, 1],
-    extrapolate: 'clamp'
-  });
-
-  const opacityShuffle = scrollY.interpolate({
-    inputRange: shuffleRange,
-    outputRange: [0, 1],
-    extrapolate: 'clamp'
-  });
+  const { title, artist, coverUrl, songs } = albumData; 
 
   return (
     <View style={gStyle.container}>
-      {showMusicBar === false && (
-        <BlurView intensity={99} style={styles.blurview} tint="dark" />
-      )}
+      <ScreenHeader navigation={navigation} title={title} showBack={true} />
 
-      <View style={styles.containerHeader}>
-        <Animated.View
-          style={[styles.headerLinear, { opacity: opacityHeading }]}
-        >
-          <LinearGradient fill={album.backgroundColor} height={89} />
-        </Animated.View>
-        <View style={styles.header}>
-          <TouchIcon
-            icon={<Feather color={colors.white} name="chevron-left" />}
-            onPress={() => navigation.goBack(null)}
-          />
-          <Animated.View style={{ opacity: opacityShuffle }}>
-            <Text style={styles.headerTitle}>{album.title}</Text>
-          </Animated.View>
-          <TouchIcon
-            icon={<Feather color={colors.white} name="more-horizontal" />}
-            onPress={() => {
-              // update main state
-              updateState('showMusicBar', !showMusicBar);
-
-              navigation.navigate('ModalMoreOptions', {
-                album
-              });
+      <FlatList
+        contentContainerStyle={styles.containerFlatlist}
+        data={songs || []} 
+        keyExtractor={(item) => item.id.toString()} 
+        ListHeaderComponent={
+          <View style={styles.containerHeader}>
+            <LinearGradient fill={coverUrl} height={200} /> 
+            <View style={styles.containerTitle}>
+              <Text ellipsizeMode="tail" numberOfLines={1} style={styles.title}>
+                {title} 
+              </Text>
+            </View>
+            <View style={styles.containerArtist}>
+              <Text style={styles.artist}>Album by {artist?.name || 'Unknown Artist'}</Text> 
+            </View>
+          </View>
+        }
+        renderItem={({ item, index }) => (
+          <LineItemSong
+            // Use currentTrack from the hook (context now uses currentTrack)
+            active={currentTrack?.id === item.id} 
+            downloaded={false} 
+            explicit={false} // TODO: Check API for explicit flag
+            imageUri={coverUrl} 
+            onPress={() => handleSongPress(item)} 
+            songData={{
+              album: title,
+              artist: artist?.name || 'Unknown Artist',
+              length: item.duration, 
+              title: item.title 
             }}
           />
-        </View>
-      </View>
-
-      <View style={styles.containerFixed}>
-        <View style={styles.containerLinear}>
-          <LinearGradient fill={album.backgroundColor} />
-        </View>
-        <View style={styles.containerImage}>
-          <Image source={images[album.image]} style={styles.image} />
-        </View>
-        <View style={styles.containerTitle}>
-          <Text ellipsizeMode="tail" numberOfLines={1} style={styles.title}>
-            {album.title}
-          </Text>
-        </View>
-        <View style={styles.containerAlbum}>
-          <Text style={styles.albumInfo}>
-            {`Album by ${album.artist} · ${album.released}`}
-          </Text>
-        </View>
-      </View>
-
-      <Animated.ScrollView
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
         )}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={stickyArray}
-        style={styles.containerScroll}
-      >
-        <View style={styles.containerSticky}>
-          <Animated.View
-            style={[styles.containerStickyLinear, { opacity: opacityShuffle }]}
-          >
-            <LinearGradient fill={colors.black20} height={50} />
-          </Animated.View>
-          <View style={styles.containerShuffle}>
-            <TouchText
-              onPress={() => null}
-              style={styles.btn}
-              styleText={styles.btnText}
-              text="Shuffle Play"
-            />
-          </View>
-        </View>
-        <View style={styles.containerSongs}>
-          <View style={styles.row}>
-            <Text style={styles.downloadText}>
-              {downloaded ? 'Downloaded' : 'Download'}
-            </Text>
-            <Switch
-              trackColor={colors.greySwitchBorder}
-              onValueChange={(val) => onToggleDownloaded(val)}
-              value={downloaded}
-            />
-          </View>
-
-          {album.tracks &&
-            album.tracks.map((track) => (
-              <LineItemSong
-                active={song === track.title}
-                downloaded={downloaded}
-                key={track.title}
-                onPress={onChangeSong}
-                songData={{
-                  album: album.title,
-                  artist: album.artist,
-                  image: album.image,
-                  length: track.seconds,
-                  title: track.title
-                }}
-              />
-            ))}
-        </View>
-        <View style={gStyle.spacer16} />
-      </Animated.ScrollView>
+      />
     </View>
   );
-}
+};
 
 Album.propTypes = {
-  // required
   navigation: PropTypes.object.isRequired,
-  route: PropTypes.object.isRequired
+  route: PropTypes.object.isRequired,
 };
 
 const styles = StyleSheet.create({
-  blurview: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 101
-  },
   containerHeader: {
-    height: 89,
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-    zIndex: 100
-  },
-  headerLinear: {
-    height: 89,
-    width: '100%'
-  },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: device.iPhoneNotch ? 48 : 24,
-    position: 'absolute',
-    top: 0,
-    width: '100%'
-  },
-  headerTitle: {
-    ...gStyle.textSpotifyBold16,
-    color: colors.white,
-    marginTop: 2,
-    paddingHorizontal: 8,
-    textAlign: 'center',
-    width: device.width - 100
-  },
-  containerFixed: {
-    alignItems: 'center',
-    paddingTop: device.iPhoneNotch ? 94 : 60,
-    position: 'absolute',
-    width: '100%'
-  },
-  containerLinear: {
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-    zIndex: device.web ? 5 : 0
-  },
-  containerImage: {
-    shadowColor: colors.black,
-    shadowOffset: { height: 8, width: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    zIndex: device.web ? 20 : 0
-  },
-  image: {
-    height: 148,
-    marginBottom: device.web ? 0 : 16,
-    width: 148
+    marginBottom: 16
   },
   containerTitle: {
-    marginTop: device.web ? 8 : 0,
-    zIndex: device.web ? 20 : 0
+    ...gStyle.pH16,
+    marginTop: 16
   },
   title: {
-    ...gStyle.textSpotifyBold20,
     color: colors.white,
-    marginBottom: 8,
-    paddingHorizontal: 24,
+    fontFamily: fonts.spotifyBold,
+    fontSize: 24,
     textAlign: 'center'
   },
-  containerAlbum: {
-    zIndex: device.web ? 20 : 0
+  containerArtist: {
+    ...gStyle.pH16,
+    marginBottom: 8,
+    marginTop: 4
   },
-  albumInfo: {
-    ...gStyle.textSpotify12,
+  artist: {
     color: colors.greyInactive,
-    marginBottom: 48
+    fontFamily: fonts.spotifyRegular,
+    fontSize: 16,
+    textAlign: 'center'
   },
-  containerScroll: {
-    paddingTop: 89
-  },
-  containerSticky: {
-    marginTop: device.iPhoneNotch ? 238 : 194
-  },
-  containerShuffle: {
-    alignItems: 'center',
-    height: 50,
-    shadowColor: colors.blackBg,
-    shadowOffset: { height: -10, width: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20
-  },
-  containerStickyLinear: {
-    position: 'absolute',
-    top: 0,
-    width: '100%'
-  },
-  btn: {
-    backgroundColor: colors.brandPrimary,
-    borderRadius: 25,
-    height: 50,
-    width: 220
-  },
-  btnText: {
-    ...gStyle.textSpotifyBold16,
-    color: colors.white,
-    letterSpacing: 1,
-    textTransform: 'uppercase'
-  },
-  containerSongs: {
-    alignItems: 'center',
-    backgroundColor: colors.blackBg,
-    minHeight: 540
-  },
-  row: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    width: '100%'
-  },
-  downloadText: {
-    ...gStyle.textSpotifyBold18,
-    color: colors.white
+  containerFlatlist: {
+    paddingBottom: device.web ? 0 : 178 
   }
 });
 

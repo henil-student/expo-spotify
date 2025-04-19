@@ -1,111 +1,127 @@
-import * as React from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { FontAwesome } from '@expo/vector-icons';
-import { colors, device, gStyle } from '../constants';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Import Icon
+import { colors, device, fonts, gStyle } from '../constants'; // Removed images import
+import { usePlayer } from '../context/PlayerContext';
+import TouchIcon from './TouchIcon'; // Keep TouchIcon for consistent touch handling
 
-function BarMusicPlayer({ song }) {
-  const navigation = useNavigation();
+// Default placeholder image
+const placeholderImage = require('../assets/images/albums/placeholder.jpg');
 
-  // local state
-  const [favorited, setFavorited] = React.useState(false);
-  const [paused, setPaused] = React.useState(true);
+const BarMusicPlayer = ({ navigation }) => {
+  // Use player context
+  const { currentTrack, isPlaying, play, pause } = usePlayer();
 
-  const favoriteColor = favorited ? colors.brandPrimary : colors.white;
-  const favoriteIcon = favorited ? 'heart' : 'heart-o';
-  const iconPlay = paused ? 'play-circle' : 'pause-circle';
+  // Don't render anything if no track is loaded
+  if (!currentTrack) {
+    return null;
+  }
+
+  const { title, artist, coverUrl } = currentTrack;
+  const imageSource = coverUrl ? { uri: coverUrl } : placeholderImage;
+
+  const handlePlayPause = () => {
+    if (isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+  };
+
+  const handlePressOpenModal = () => {
+    // TODO: Navigate to ModalMusicPlayer
+    console.log('Open music player modal');
+    // navigation.navigate('ModalMusicPlayer');
+  };
 
   return (
     <TouchableOpacity
-      activeOpacity={1}
-      onPress={() => navigation.navigate('ModalMusicPlayer')}
+      activeOpacity={1} // Use 1 to prevent visual feedback on the bar itself
+      onPress={handlePressOpenModal}
       style={styles.container}
     >
-      <TouchableOpacity
-        activeOpacity={gStyle.activeOpacity}
-        hitSlop={{ bottom: 10, left: 10, right: 10, top: 10 }}
-        onPress={() => setFavorited(!favorited)}
-        style={styles.containerIcon}
-      >
-        <FontAwesome color={favoriteColor} name={favoriteIcon} size={20} />
-      </TouchableOpacity>
+      {/* Progress Bar (simple version for now) */}
+      {/* TODO: Add actual progress based on playbackStatus */}
+      <View style={styles.progressBar} />
 
-      {song && (
-        <View>
-          <View style={styles.containerSong}>
-            <Text style={styles.title}>{`${song.title} · `}</Text>
-            <Text style={styles.artist}>{song.artist}</Text>
-          </View>
-          <View style={[gStyle.flexRowCenter, gStyle.mTHalf]}>
-            <FontAwesome
-              color={colors.brandPrimary}
-              name="bluetooth-b"
-              size={14}
-            />
-            <Text style={styles.device}>Caleb&apos;s Beatsx</Text>
-          </View>
+      <View style={styles.content}>
+        <Image source={imageSource} style={styles.image} />
+
+        <View style={styles.containerSong}>
+          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          <Text style={styles.artist} numberOfLines={1}>{artist}</Text>
         </View>
-      )}
 
-      <TouchableOpacity
-        activeOpacity={gStyle.activeOpacity}
-        hitSlop={{ bottom: 10, left: 10, right: 10, top: 10 }}
-        onPress={() => setPaused(!paused)}
-        style={styles.containerIcon}
-      >
-        <FontAwesome color={colors.white} name={iconPlay} size={28} />
-      </TouchableOpacity>
+        <View style={styles.containerControls}>
+          {/* Play/Pause Button using Vector Icon */}
+          <TouchableOpacity onPress={handlePlayPause} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+             <Icon 
+               name={isPlaying ? "pause-circle" : "play-circle"} 
+               size={30} // Slightly larger icon
+               color={colors.white} 
+             />
+          </TouchableOpacity>
+          {/* TODO: Add other controls like next/previous if needed */}
+        </View>
+      </View>
     </TouchableOpacity>
   );
-}
-
-BarMusicPlayer.defaultProps = {
-  song: null
 };
 
+// navigation is needed if we want to navigate onPress
 BarMusicPlayer.propTypes = {
-  // optional
-  song: PropTypes.shape({
-    artist: PropTypes.string,
-    title: PropTypes.string
-  })
+  navigation: PropTypes.object.isRequired,
 };
 
 const styles = StyleSheet.create({
   container: {
-    alignSelf: 'center',
-    backgroundColor: colors.grey,
-    borderBottomColor: colors.blackBg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.grey, // Use a slightly different background
+    position: 'absolute',
+    bottom: device.iPhoneX ? 88 : 60, // Adjust based on tab bar height
+    left: 0,
+    right: 0,
+    width: '100%',
+    borderTopWidth: 1, // Add a subtle top border
+    borderTopColor: colors.blackBg,
+  },
+  progressBar: {
+    backgroundColor: colors.brandPrimary,
+    height: 2, // Simple progress indicator height
+    width: '40%', // TODO: Update this dynamically based on playbackStatus
+  },
+  content: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 8,
-    width: '100%'
+    paddingHorizontal: 16,
   },
-  containerIcon: {
-    ...gStyle.flexCenter,
-    width: 50
+  image: {
+    height: 40, // Smaller image for the bar
+    width: 40,
+    marginRight: 12,
   },
   containerSong: {
-    ...gStyle.flexRowCenter,
+    flex: 1, // Take remaining space
     overflow: 'hidden',
-    width: device.width - 100
+    marginRight: 12,
   },
   title: {
-    ...gStyle.textSpotify12,
-    color: colors.white
+    ...gStyle.textSpotify14, // Slightly smaller font
+    color: colors.white,
+    marginBottom: 2,
   },
   artist: {
     ...gStyle.textSpotify12,
-    color: colors.greyLight
+    color: colors.greyInactive,
   },
-  device: {
-    ...gStyle.textSpotify10,
-    color: colors.brandPrimary,
-    marginLeft: 4,
-    textTransform: 'uppercase'
-  }
+  containerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 8, // Add some padding before the controls
+  },
+  // Removed icon style as vector icon handles size/color directly
 });
 
 export default BarMusicPlayer;

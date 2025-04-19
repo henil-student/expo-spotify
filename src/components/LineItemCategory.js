@@ -1,110 +1,65 @@
-import * as React from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import {
-  Feather,
-  Entypo,
-  MaterialIcons,
-  MaterialCommunityIcons,
-  FontAwesome
-} from '@expo/vector-icons';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors, gStyle } from '../constants';
 
-function LineItemCategory({
-  icon,
-  onPress,
-  title,
-  disableRightSide,
-  iconLibrary
-}) {
-  let iconDisplay;
+// Default placeholder image
+const placeholderImage = require('../assets/images/albums/placeholder.jpg');
 
-  switch (iconLibrary) {
-    case 'Entypo':
-      iconDisplay = (
-        <Entypo color={colors.greyInactive} name={icon} size={24} />
-      );
-      break;
-    case 'MaterialIcons':
-      iconDisplay = (
-        <MaterialIcons color={colors.greyInactive} name={icon} size={24} />
-      );
-      break;
-    case 'MaterialCommunityIcons':
-      iconDisplay = (
-        <MaterialCommunityIcons
-          color={colors.greyInactive}
-          name={icon}
-          size={24}
-        />
-      );
-      break;
-    case 'FontAwesome':
-      iconDisplay = (
-        <FontAwesome color={colors.greyInactive} name={icon} size={24} />
-      );
-      break;
-    case 'Feather':
-    default:
-      iconDisplay = (
-        <Feather color={colors.greyInactive} name={icon} size={24} />
-      );
-      break;
-  }
+const LineItemCategory = ({ bgColor, onPress, title, image }) => {
+  // Ensure image is a valid source object or require path
+  const imageSource = typeof image === 'string' ? { uri: image } : image || null;
 
   return (
     <TouchableOpacity
       activeOpacity={gStyle.activeOpacity}
       onPress={onPress}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: bgColor }]}
     >
-      <View style={gStyle.flexRowCenterAlign}>
-        {iconDisplay}
-        <Text style={styles.title}>{title}</Text>
-      </View>
-
-      {disableRightSide ? null : (
-        <View style={styles.containerRight}>
-          <Feather color={colors.greyInactive} name="chevron-right" size={20} />
-        </View>
+      <Text style={styles.title}>{title}</Text>
+      {imageSource && (
+        <Image source={imageSource} style={styles.image} />
       )}
     </TouchableOpacity>
   );
-}
+};
 
 LineItemCategory.defaultProps = {
-  disableRightSide: null,
-  iconLibrary: 'Feather'
+  bgColor: colors.brandPrimary,
+  image: null
 };
 
 LineItemCategory.propTypes = {
   // required
-  icon: PropTypes.string.isRequired,
   onPress: PropTypes.func.isRequired,
   title: PropTypes.string.isRequired,
 
   // optional
-  disableRightSide: PropTypes.bool,
-  iconLibrary: PropTypes.oneOfType([PropTypes.string, PropTypes.bool])
+  bgColor: PropTypes.string,
+  image: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 };
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    width: '100%'
+    borderRadius: 6,
+    height: 98,
+    marginBottom: 16,
+    overflow: 'hidden',
+    paddingLeft: 16,
+    paddingTop: 16,
+    width: '48%' // Adjust for 2 columns with spacing
   },
   title: {
-    ...gStyle.textSpotify14,
-    color: colors.white,
-    marginLeft: 16
+    ...gStyle.textSpotifyBold16,
+    color: colors.white
   },
-  containerRight: {
-    alignItems: 'flex-end',
-    flex: 1
+  image: {
+    bottom: -10,
+    height: 70,
+    position: 'absolute',
+    right: -10,
+    transform: [{ rotate: '20deg' }],
+    width: 70
   }
 });
 
