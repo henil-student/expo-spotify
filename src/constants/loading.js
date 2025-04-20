@@ -35,8 +35,8 @@ export const LOADING_STATES = {
   NONE: 'NONE'
 };
 
-// Get loading message based on state
-export const getLoadingMessage = (state = LOADING_STATES.INITIAL) => {
+// Get loading message based on state, allow overriding default text for NONE state
+export const getLoadingMessage = (state = LOADING_STATES.INITIAL, defaultText = LOADING_MESSAGES.DEFAULT) => {
   switch (state) {
     case LOADING_STATES.AUTH_CHECK:
       return LOADING_MESSAGES.CHECKING_AUTH;
@@ -47,10 +47,19 @@ export const getLoadingMessage = (state = LOADING_STATES.INITIAL) => {
     case LOADING_STATES.LOGOUT:
       return LOADING_MESSAGES.LOGGING_OUT;
     case LOADING_STATES.DATA_FETCH:
-      return LOADING_MESSAGES.LOADING_PROFILE;
+      // Could potentially make this more specific if needed
+      return LOADING_MESSAGES.DEFAULT; 
     case LOADING_STATES.DATA_SYNC:
       return LOADING_MESSAGES.SYNCING;
+    case LOADING_STATES.NONE:
+      // If state is NONE, return the provided defaultText
+      return defaultText; 
+    case LOADING_STATES.INITIAL:
+       // For initial state, maybe return the default loading message or the specific defaultText?
+       // Let's return the specific defaultText for consistency if provided.
+       return defaultText;
     default:
+      // For any other unknown state, return the generic default
       return LOADING_MESSAGES.DEFAULT;
   }
 };

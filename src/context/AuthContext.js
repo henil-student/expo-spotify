@@ -35,79 +35,109 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuthState = async () => {
     setLoadingState(LOADING_STATES.AUTH_CHECK);
+    console.log('[AuthContext] Checking auth state...');
     try {
       const [storedToken, storedUser] = await Promise.all([
         tokenStorage.getToken(),
         tokenStorage.getUser()
       ]);
+      console.log('[AuthContext] Retrieved from storage:', { storedToken: !!storedToken, storedUser: !!storedUser });
 
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(storedUser);
         setIsAuthenticated(true);
+        console.log('[AuthContext] User is authenticated from storage.');
+      } else {
+         console.log('[AuthContext] No valid token/user found in storage.');
+         // Ensure state is cleared if storage is inconsistent
+         setUser(null);
+         setToken(null);
+         setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error('Error checking auth state:', error);
+      console.error('[AuthContext] Error checking auth state:', error);
       setUser(null);
       setToken(null);
       setIsAuthenticated(false);
-      // Use updated showToast signature
       showToast('error', 'Auth Error', AUTH_MESSAGES.SERVER_ERROR); 
     } finally {
       setLoadingState(LOADING_STATES.NONE);
       setLoading(false);
+      console.log('[AuthContext] Auth check finished.');
     }
   };
 
   const handleLogin = async (userData, authToken) => {
     setLoadingState(LOADING_STATES.LOGIN);
+    console.log('[AuthContext] Attempting login...');
     try {
       await Promise.all([
         tokenStorage.saveToken(authToken),
         tokenStorage.saveUser(userData)
       ]);
+      console.log('[AuthContext] Token and user saved to storage.');
       setUser(userData);
       setToken(authToken);
       setIsAuthenticated(true);
-      // Use updated showToast signature
+      console.log('[AuthContext] Login successful, state updated.');
       showToast('success', 'Login Successful', AUTH_MESSAGES.LOGIN_SUCCESS); 
     } catch (error) {
-      console.error('Error during login:', error);
-      // Use updated showToast signature
+      console.error('[AuthContext] Error during login:', error);
       showToast('error', 'Login Error', AUTH_MESSAGES.SERVER_ERROR); 
-      throw error;
+      // Clear potentially partially saved data on login error? Maybe not needed.
+      throw error; // Re-throw for the calling screen
     } finally {
       setLoadingState(LOADING_STATES.NONE);
+      console.log('[AuthContext] Login attempt finished.');
     }
   };
 
   const handleLogout = async () => {
+    console.log('[AuthContext] Attempting logout...');
+    setLoadingState(LOADING_STATES.LOGOUT); // Set loading state immediately
     try {
-      setLoadingState(LOADING_STATES.LOGOUT);
-      // Call API logout if needed
-      await apiService.auth.logout().catch(() => {}); // Optional, continue even if fails
+      // Call API logout if needed - currently simulated
+      console.log('[AuthContext] Calling simulated API logout...');
+      await apiService.auth.logout().catch((apiErr) => {
+         console.warn('[AuthContext] Simulated API logout failed (ignored):', apiErr);
+      }); 
+      console.log('[AuthContext] Simulated API logout finished.');
       
       // Clear local storage
+      console.log('[AuthContext] Clearing token storage...');
       await tokenStorage.clearStorage();
+      console.log('[AuthContext] Token storage cleared successfully.');
       
       // Clear app state
+      console.log('[AuthContext] Clearing app state (user, token, isAuthenticated)...');
       setUser(null);
       setToken(null);
       setIsAuthenticated(false);
-      // Use updated showToast signature
+      console.log('[AuthContext] App state cleared.');
       showToast('success', 'Logout Successful', AUTH_MESSAGES.LOGOUT_SUCCESS); 
     } catch (error) {
-      console.error('Error during logout:', error);
-      // Use updated showToast signature
+      console.error('[AuthContext] Error during logout:', error);
+      // Attempt to clear state even if storage fails? Risky if storage is needed later.
+      // Let's log the error and show toast, but state might remain logged in.
       showToast('error', 'Logout Error', AUTH_MESSAGES.SERVER_ERROR); 
+      // Consider resetting state here too for robustness?
+      // setUser(null);
+      // setToken(null);
+      // setIsAuthenticated(false);
     } finally {
       setLoadingState(LOADING_STATES.NONE);
+      console.log('[AuthContext] Logout attempt finished.');
     }
   };
 
-  if (loading || loadingState !== LOADING_STATES.NONE) {
+  // Keep the loading screen logic
+  if (loading || (loadingState !== LOADING_STATES.NONE && loadingState !== LOADING_STATES.AUTH_CHECK && !isAuthenticated)) {
+     // Show loading screen on initial load, or during login/signup/logout if not already authenticated
+     // Avoid showing loading screen during background auth check if user is already authenticated
     return <LoadingScreen message={getLoadingMessage(loadingState)} />;
   }
+
 
   return (
     <AuthContext.Provider
@@ -117,8 +147,8 @@ export const AuthProvider = ({ children }) => {
         user,
         login: handleLogin,
         logout: handleLogout,
-        loading,
-        loadingState
+        loading, // This is mainly for initial load
+        loadingState // This reflects ongoing operations like login/logout
       }}
     >
       {children}
