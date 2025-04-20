@@ -4,6 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const artistController = require('../controllers/artistController');
 const albumController = require('../controllers/albumController');
 const songController = require('../controllers/songController');
+const searchController = require('../controllers/searchController'); // Import search controller
 
 // Artist routes
 router.get('/artists', artistController.getAllArtists);
@@ -28,5 +29,8 @@ router.get('/songs/:id', songController.getSongById);
 router.post('/songs', authenticate, songController.createSong);
 router.put('/songs/:id', authenticate, songController.updateSong);
 router.delete('/songs/:id', authenticate, songController.deleteSong);
+
+// Search route
+router.get('/search', searchController.searchAll); // Add search route
 
 module.exports = router;

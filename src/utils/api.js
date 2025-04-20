@@ -157,6 +157,20 @@ export const apiService = {
       } catch (error) {
         throw error;
       }
+    },
+    // Add the search function
+    async searchAll(query) {
+      if (!query || query.trim() === '') {
+        // Avoid sending empty queries
+        return { artists: [], albums: [], songs: [] };
+      }
+      try {
+        const response = await api.get(`/search?q=${encodeURIComponent(query)}`);
+        return response.data; // Should be { artists: [], albums: [], songs: [] }
+      } catch (error) {
+        console.error('Search API error:', error);
+        throw error; // Re-throw for the component to handle
+      }
     }
   }
 };
