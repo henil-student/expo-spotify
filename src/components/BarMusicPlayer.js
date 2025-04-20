@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native'; // Import ActivityIndicator
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors, device, fonts, gStyle, func } from '../constants';
@@ -9,24 +9,32 @@ import { usePlayer } from '../context/PlayerContext';
 const placeholderImage = require('../assets/images/albums/placeholder.jpg');
 
 const BarMusicPlayer = ({ navigation }) => {
-  // === HOOKS (Call all hooks unconditionally at the top) ===
-  const { currentTrack, isPlaying, playbackStatus, play, pause, seek } = usePlayer(); // Hook 1
-  const [isSeeking, setIsSeeking] = useState(false); // Hook 2
-  const [sliderValue, setSliderValue] = useState(0); // Hook 3
+  // === HOOKS ===
+  // Get isLoadingTrack as well
+  const { 
+    currentTrack, 
+    isPlaying, 
+    isLoadingTrack, // Get loading state
+    playbackStatus, 
+    play, 
+    pause, 
+    seek 
+  } = usePlayer(); 
+  const [isSeeking, setIsSeeking] = useState(false); 
+  const [sliderValue, setSliderValue] = useState(0); 
 
-  // Calculate progress (moved before useEffect, but after getting status)
+  // Calculate progress
   const positionMillis = playbackStatus?.positionMillis || 0;
   const durationMillis = playbackStatus?.durationMillis || 0;
   const sliderProgress = durationMillis > 0 ? positionMillis / durationMillis : 0;
 
-  // Effect to update slider (Hook 4)
+  // Effect to update slider
   useEffect(() => {
-    // Only update slider value if not seeking and track is loaded
-    if (!isSeeking && playbackStatus?.isLoaded) {
+    // Only update slider value if not seeking, track is loaded, and not currently loading a new track
+    if (!isSeeking && playbackStatus?.isLoaded && !isLoadingTrack) { 
       setSliderValue(sliderProgress);
     }
-    // Ensure dependencies are correct
-  }, [sliderProgress, isSeeking, playbackStatus]); 
+  }, [sliderProgress, isSeeking, playbackStatus, isLoadingTrack]); // Add isLoadingTrack dependency
 
   // === Early return AFTER all hooks ===
   if (!currentTrack) {
@@ -35,6 +43,7 @@ const BarMusicPlayer = ({ navigation }) => {
 
   // === Component Logic & Handlers ===
   const handlePlayPause = () => {
+    if (isLoadingTrack) return; // Prevent action while loading
     if (isPlaying) {
       pause();
     } else {
@@ -44,20 +53,22 @@ const BarMusicPlayer = ({ navigation }) => {
 
   const handlePressOpenModal = () => {
     console.log('Open music player modal');
-    // FIX: Uncomment navigation to the modal
     navigation.navigate('ModalMusicPlayer'); 
   };
 
   const onSlidingStart = () => {
+    if (isLoadingTrack) return; // Prevent seeking while loading
     console.log('Slider Start');
     setIsSeeking(true);
   };
 
   const onValueChange = (value) => {
+    if (isLoadingTrack) return; // Prevent seeking while loading
     setSliderValue(value);
   };
 
   const onSlidingComplete = async (value) => {
+    if (isLoadingTrack) return; // Prevent seeking while loading
     console.log('Slider Complete:', value);
     setIsSeeking(false);
     if (durationMillis > 0) {
@@ -69,12 +80,13 @@ const BarMusicPlayer = ({ navigation }) => {
 
   const { title, artist, artwork } = currentTrack;
   const imageSource = artwork ? { uri: artwork } : placeholderImage;
+  const disableControls = isLoadingTrack; // Flag to disable controls
 
   // === Render ===
   return (
     <TouchableOpacity
       activeOpacity={1}
-      onPress={handlePressOpenModal} // This now navigates
+      onPress={handlePressOpenModal} 
       style={styles.container}
     >
       <Slider
@@ -84,10 +96,11 @@ const BarMusicPlayer = ({ navigation }) => {
         value={sliderValue}
         minimumTrackTintColor={colors.white}
         maximumTrackTintColor={colors.greyInactive}
-        thumbTintColor={colors.white}
+        thumbTintColor={colors.white} // Keep thumb visible but disable interaction
         onSlidingStart={onSlidingStart}
         onValueChange={onValueChange}
         onSlidingComplete={onSlidingComplete}
+        disabled={disableControls} // Disable slider during loading
       />
 
       <View style={styles.content}>
@@ -97,12 +110,22 @@ const BarMusicPlayer = ({ navigation }) => {
           <Text style={styles.artist} numberOfLines={1}>{artist}</Text>
         </View>
         <View style={styles.containerControls}>
-          <TouchableOpacity onPress={handlePlayPause} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-             <Icon
-               name={isPlaying ? "pause-circle" : "play-circle"}
-               size={30}
-               color={colors.white}
-             />
+          {/* Show loader if isLoadingTrack */}
+          <TouchableOpacity 
+             onPress={handlePlayPause} 
+             disabled={disableControls} 
+             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+             style={styles.playPauseButton} // Added style for sizing
+          >
+             {isLoadingTrack ? (
+               <ActivityIndicator color={colors.white} size="small" />
+             ) : (
+               <Icon
+                 name={isPlaying ? "pause-circle" : "play-circle"}
+                 size={30}
+                 color={colors.white}
+               />
+             )}
           </TouchableOpacity>
         </View>
       </View>
@@ -118,7 +141,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.grey,
     position: 'absolute',
-    bottom: device.iPhoneX ? 88 : 60,
+    bottom: device.iPhoneX ? 88 : 60, // Adjusted for safe area if needed
     left: 0,
     right: 0,
     width: '100%',
@@ -167,6 +190,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingLeft: 8,
   },
+  playPauseButton: { // Added style to ensure consistent size for icon/loader
+     width: 30,
+     height: 30,
+     alignItems: 'center',
+     justifyContent: 'center',
+  }
 });
 
 export default BarMusicPlayer;

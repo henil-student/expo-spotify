@@ -6,26 +6,29 @@ import PropTypes from 'prop-types';
 const PlayerContext = createContext({
   currentTrack: null,
   isPlaying: false,
+  isLoadingTrack: false, 
   playbackInstance: null,
   playbackStatus: null,
-  queue: [], // Added queue state
-  currentIndex: null, // Added currentIndex state
-  loadTrack: async (initialTrack, trackQueue, initialIndex) => {}, // Updated signature
+  queue: [], 
+  currentIndex: null, 
+  loadTrack: async (initialTrack, trackQueue, initialIndex) => {}, 
   play: async () => {},
   pause: async () => {},
   seek: async (position) => {},
-  playNext: async () => {}, // Added playNext
-  playPrevious: async () => {}, // Added playPrevious
+  playNext: async () => {}, 
+  playPrevious: async () => {}, 
 });
 
 export const PlayerProvider = ({ children }) => {
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoadingTrack, setIsLoadingTrack] = useState(false); 
   const [playbackInstance, setPlaybackInstance] = useState(null);
   const [playbackStatus, setPlaybackStatus] = useState(null);
-  const [queue, setQueue] = useState([]); // State for the track queue
-  const [currentIndex, setCurrentIndex] = useState(null); // State for the current index in the queue
+  const [queue, setQueue] = useState([]); 
+  const [currentIndex, setCurrentIndex] = useState(null); 
   const isSeeking = useRef(false);
+  const currentPlaybackInstanceRef = useRef(null); 
 
   // Configure audio settings
   useEffect(() => {
@@ -52,233 +55,250 @@ export const PlayerProvider = ({ children }) => {
   useEffect(() => {
     return () => {
       console.log('PlayerProvider unmounting. Unloading sound.');
-      playbackInstance?.unloadAsync();
+      currentPlaybackInstanceRef.current?.unloadAsync(); 
     };
-  }, [playbackInstance]);
-
-  // Internal function to load and play a specific track object
-  const _loadAudio = async (track) => {
-    if (!track || !track.previewUrl) {
-      console.error('Cannot load audio: Invalid track data or preview URL missing. Track:', track);
-      // Reset state if loading fails fundamentally
-      setCurrentTrack(null);
-      setPlaybackInstance(null);
-      setPlaybackStatus(null);
-      setIsPlaying(false);
-      // Consider clearing queue? Maybe not, user might retry.
-      return false; // Indicate failure
-    }
-
-    console.log('Loading audio for track:', track.title, track.previewUrl);
-    setCurrentTrack(track); // Update current track state
-    setIsPlaying(false); // Assume paused initially
-
-    try {
-      // Unload previous sound
-      if (playbackInstance) {
-        console.log('Unloading previous playback instance.');
-        await playbackInstance.unloadAsync();
-        // Keep playbackInstance state until new one is set? No, set to null.
-        setPlaybackInstance(null); 
-        setPlaybackStatus(null); // Reset status too
-      }
-
-      // Load new sound
-      console.log('Calling Audio.Sound.createAsync...');
-      const { sound, status } = await Audio.Sound.createAsync(
-        { uri: track.previewUrl },
-        { 
-          shouldPlay: true, // Attempt to play immediately after loading
-          progressUpdateIntervalMillis: 1000, 
-        }, 
-        onPlaybackStatusUpdate // Use the single status update handler
-      );
-
-      setPlaybackInstance(sound);
-      setPlaybackStatus(status); // Set initial status
-      // isPlaying state will be updated by onPlaybackStatusUpdate based on actual playback
-      console.log('Audio loaded successfully. Initial Status:', status);
-      return true; // Indicate success
-
-    } catch (e) {
-      console.error('Failed to load audio', e);
-      setCurrentTrack(null); // Reset track if loading failed
-      setPlaybackInstance(null);
-      setPlaybackStatus(null);
-      setIsPlaying(false);
-      return false; // Indicate failure
-    }
-  };
+  }, []); 
 
   // Update playback status handler
   const onPlaybackStatusUpdate = (status) => {
+    // Add logging here
+    console.log(`[PlayerContext] onPlaybackStatusUpdate: isLoaded=${status.isLoaded}, isPlaying=${status.isPlaying}, positionMillis=${status.positionMillis}, didJustFinish=${status.didJustFinish}, isSeeking=${isSeeking.current}`);
+    
     if (!status.isLoaded) {
-      // Handle unload or error during loading/playback
-      if (playbackStatus?.isLoaded) { // Check if it *was* loaded before
-        console.log('Playback instance unloaded unexpectedly or failed to load.');
-        setIsPlaying(false);
-        // Optionally reset currentTrack/playbackInstance here if needed
-        // setPlaybackInstance(null); 
-        // setCurrentTrack(null); // Maybe keep track info?
+      if (status.error) {
+         console.error(`[PlayerContext] Playback Error: ${status.error}`);
+         setIsLoadingTrack(false); 
       }
-      setPlaybackStatus(status); // Update status anyway
-      return; // Don't proceed if not loaded
+      // Update status even if not loaded, might contain error info or indicate unload
+      // Only update if it's different? Avoid unnecessary re-renders.
+      // setPlaybackStatus(status); 
+      return; 
     }
 
     // Only update state if not currently seeking manually
     if (!isSeeking.current) {
+      // Log the update being applied
+      console.log(`[PlayerContext] Applying status update: positionMillis=${status.positionMillis}`);
       setPlaybackStatus(status);
       setIsPlaying(status.isPlaying); 
+      setIsLoadingTrack(false); 
 
       // Handle track finishing
       if (status.didJustFinish && !status.isLooping) {
-        console.log('Track finished, playing next.');
-        playNext(); // Call playNext when track finishes
+        console.log('[PlayerContext] Track finished naturally.');
+        const nextIndex = currentIndex !== null ? currentIndex + 1 : null;
+        if (nextIndex !== null && nextIndex < queue.length) {
+          console.log(`[PlayerContext] Preparing to load next track at index: ${nextIndex}`);
+          const nextTrack = queue[nextIndex];
+          _loadAudio(nextTrack, nextIndex); 
+        } else {
+          console.log('[PlayerContext] End of queue reached after track finish.');
+           if (currentPlaybackInstanceRef.current) { 
+              currentPlaybackInstanceRef.current.stopAsync(); 
+           }
+           setIsPlaying(false); 
+        }
       }
+    } else {
+        console.log("[PlayerContext] Ignoring status update while seeking.");
+    }
+  };
+
+  // Internal function to load and play a specific track object
+  const _loadAudio = async (track, indexToSet) => {
+    if (!track || !track.previewUrl) {
+      console.error('[PlayerContext] Cannot load audio: Invalid track data or preview URL missing. Track:', track);
+      setIsLoadingTrack(false); 
+      return false; 
+    }
+
+    console.log(`[PlayerContext] Loading audio for track: ${track.title} at index ${indexToSet}`);
+    setIsLoadingTrack(true); 
+    setIsPlaying(false); 
+    
+    setCurrentTrack(track); 
+    setCurrentIndex(indexToSet);
+
+    const oldPlaybackInstance = currentPlaybackInstanceRef.current; 
+
+    try {
+      console.log('[PlayerContext] Calling Audio.Sound.createAsync...');
+      const { sound: newSound, status: initialStatus } = await Audio.Sound.createAsync(
+        { uri: track.previewUrl },
+        { 
+          shouldPlay: true, 
+          progressUpdateIntervalMillis: 1000, 
+        }, 
+        onPlaybackStatusUpdate 
+      );
+      console.log('[PlayerContext] Audio loaded successfully. New instance created.');
+
+      currentPlaybackInstanceRef.current = newSound; 
+      
+      setPlaybackInstance(newSound); 
+      setPlaybackStatus(initialStatus); 
+      console.log('[PlayerContext] New playback instance set.');
+
+      if (oldPlaybackInstance) {
+        console.log('[PlayerContext] Unloading previous playback instance.');
+        await oldPlaybackInstance.unloadAsync();
+        console.log('[PlayerContext] Previous instance unloaded.');
+      }
+      
+      return true; 
+
+    } catch (e) {
+      console.error('[PlayerContext] Failed to load audio', e);
+       if (oldPlaybackInstance) {
+          try { await oldPlaybackInstance.stopAsync(); } catch {} 
+       }
+       currentPlaybackInstanceRef.current = null; 
+       setPlaybackInstance(null);
+       setPlaybackStatus(null);
+       setCurrentTrack(null); 
+       setCurrentIndex(null);
+       setIsPlaying(false);
+       setIsLoadingTrack(false); 
+      return false; 
     }
   };
 
   // Exposed function to load track(s) and set the queue
   const loadTrack = async (initialTrack, trackQueue = [], initialIndex = 0) => {
-    console.log(`[CONTEXT] loadTrack called. Index: ${initialIndex}, Queue length: ${trackQueue.length}`);
-    // Ensure queue is valid array
+    console.log(`[PlayerContext] loadTrack called. Index: ${initialIndex}, Queue length: ${trackQueue.length}`);
     const validQueue = Array.isArray(trackQueue) ? trackQueue : [];
-    // Ensure index is valid
     const validIndex = (typeof initialIndex === 'number' && initialIndex >= 0 && initialIndex < validQueue.length) ? initialIndex : 0;
-    // Ensure the track at the index is valid
-    const trackToLoad = validQueue[validIndex] || initialTrack; // Fallback to initialTrack if index/queue invalid
+    const trackToLoad = validQueue[validIndex] || initialTrack; 
 
     if (!trackToLoad) {
-        console.error("No valid track to load.");
+        console.error("[PlayerContext] No valid track to load.");
         return;
     }
 
     setQueue(validQueue);
-    setCurrentIndex(validIndex);
-    
-    // Load the specific track using the internal function
-    await _loadAudio(trackToLoad); 
+    await _loadAudio(trackToLoad, validIndex); 
   };
 
   // Play next track in the queue
   const playNext = async () => {
-    console.log('[CONTEXT] playNext called.');
+    console.log('[PlayerContext] playNext called manually.');
+    if (isLoadingTrack) { console.log("[PlayerContext] Already loading track, ignoring manual playNext."); return; } 
     if (queue.length === 0 || currentIndex === null) {
-      console.log('PlayNext: No queue or index.');
+      console.log('[PlayerContext] PlayNext: No queue or index.');
       return;
     }
 
     const nextIndex = currentIndex + 1;
     if (nextIndex < queue.length) {
-      console.log(`Playing next track at index: ${nextIndex}`);
-      setCurrentIndex(nextIndex);
+      console.log(`[PlayerContext] Manually playing next track at index: ${nextIndex}`);
       const nextTrack = queue[nextIndex];
-      await _loadAudio(nextTrack);
+      await _loadAudio(nextTrack, nextIndex); 
     } else {
-      console.log('End of queue reached.');
-      // Optional: Stop playback, seek to start of last track, etc.
-      // For now, just stop and reset state slightly
-      if (playbackInstance) {
-          await playbackInstance.stopAsync(); // Stop playback
-          // Optionally unload: await playbackInstance.unloadAsync(); setPlaybackInstance(null);
-      }
-      // Resetting index might be confusing if user presses prev later
-      // setCurrentIndex(null); 
-      // setQueue([]);
-      setIsPlaying(false); // Ensure state reflects stopped playback
+      
+      console.log('[PlayerContext] End of queue reached on manual next.');
+       if (currentPlaybackInstanceRef.current) { 
+          await currentPlaybackInstanceRef.current.stopAsync(); 
+       }
+       setIsPlaying(false); 
     }
   };
 
   // Play previous track in the queue
   const playPrevious = async () => {
-    console.log('[CONTEXT] playPrevious called.');
+    console.log('[PlayerContext] playPrevious called manually.');
+     if (isLoadingTrack) { console.log("[PlayerContext] Already loading track, ignoring manual playPrevious."); return; } 
      if (queue.length === 0 || currentIndex === null) {
-      console.log('PlayPrevious: No queue or index.');
+      console.log('[PlayerContext] PlayPrevious: No queue or index.');
       return;
     }
 
-    // If near the beginning of the track, just seek to 0
-    if (playbackStatus?.positionMillis > 3000 && currentIndex >= 0) { // More than 3 seconds in
-        console.log('Seeking to beginning of current track.');
+    const currentPositionMs = playbackStatus?.positionMillis || 0;
+    if (currentPositionMs > 3000 && currentIndex >= 0) { 
+        console.log('[PlayerContext] Seeking to beginning of current track.');
         await seek(0);
-        return; // Don't go to previous track yet
+        return; 
     }
 
-    // Otherwise, go to the previous track if possible
     const prevIndex = currentIndex - 1;
     if (prevIndex >= 0) {
-      console.log(`Playing previous track at index: ${prevIndex}`);
-      setCurrentIndex(prevIndex);
+      console.log(`[PlayerContext] Manually playing previous track at index: ${prevIndex}`);
       const prevTrack = queue[prevIndex];
-      await _loadAudio(prevTrack);
+      await _loadAudio(prevTrack, prevIndex); 
     } else {
-      console.log('Start of queue reached.');
-      // Optional: Seek to 0 of the first track if not already there
-      if (playbackStatus?.positionMillis !== 0) {
+      console.log('[PlayerContext] Start of queue reached on manual previous.');
+      if (currentPositionMs !== 0) {
           await seek(0);
       }
     }
   };
 
-
-  // Playback controls (play, pause, seek remain largely the same)
+  // Playback controls
   const play = async () => {
-    console.log('[CONTEXT] Play function called.');
-    if (playbackInstance) {
+    console.log('[PlayerContext] Play function called.');
+    const instance = currentPlaybackInstanceRef.current; 
+    if (instance) {
       try {
-        console.log('[CONTEXT] Attempting playbackInstance.playAsync()');
-        await playbackInstance.playAsync();
-        // isPlaying state updated via onPlaybackStatusUpdate
+        console.log('[PlayerContext] Attempting playbackInstance.playAsync()');
+        await instance.playAsync();
       } catch (e) {
-        console.error('[CONTEXT] Failed to play track', e);
+        console.error('[PlayerContext] Failed to play track', e);
       }
     } else if (currentTrack) {
-      console.log('[CONTEXT] Playback instance not found, reloading current track...');
-      // Attempt to reload the current track if instance is lost
-      await _loadAudio(currentTrack); 
+      console.log('[PlayerContext] Playback instance not found, reloading current track...');
+      await _loadAudio(currentTrack, currentIndex); 
     } else {
-      console.log('[CONTEXT] Play called but no track loaded.'); 
+      console.log('[PlayerContext] Play called but no track loaded.'); 
     }
   };
 
   const pause = async () => {
-    console.log('[CONTEXT] Pause function called.');
-    if (playbackInstance) {
+    console.log('[PlayerContext] Pause function called.');
+    const instance = currentPlaybackInstanceRef.current; 
+    if (instance) {
       try {
-        console.log('[CONTEXT] Attempting playbackInstance.pauseAsync()');
-        await playbackInstance.pauseAsync();
-         // isPlaying state updated via onPlaybackStatusUpdate
+        console.log('[PlayerContext] Attempting playbackInstance.pauseAsync()');
+        await instance.pauseAsync();
       } catch (e) {
-        console.error('[CONTEXT] Failed to pause track', e);
+        console.error('[PlayerContext] Failed to pause track', e);
       }
     }
   };
 
   const seek = async (positionMillis) => {
-    console.log(`[CONTEXT] Seek function called: ${positionMillis}ms`);
-    if (playbackInstance && playbackStatus?.durationMillis) {
+    console.log(`[PlayerContext] Seek function called: ${positionMillis}ms`);
+    const instance = currentPlaybackInstanceRef.current; 
+    const currentStatus = instance ? await instance.getStatusAsync() : playbackStatus; 
+
+    if (instance && currentStatus?.isLoaded && currentStatus?.durationMillis) {
       isSeeking.current = true;
+      console.log('[PlayerContext] Seek started, isSeeking=true');
+
       try {
-        const clampedPosition = Math.max(0, Math.min(positionMillis, playbackStatus.durationMillis));
-        console.log(`[CONTEXT] Attempting playbackInstance.setPositionAsync(${clampedPosition})`);
-        await playbackInstance.setPositionAsync(clampedPosition);
-        // Get status immediately after seek
-        const status = await playbackInstance.getStatusAsync();
-        if (status.isLoaded) {
-            setPlaybackStatus(status); 
-            setIsPlaying(status.isPlaying); 
+        const clampedPosition = Math.max(0, Math.min(positionMillis, currentStatus.durationMillis));
+        console.log(`[PlayerContext] Attempting playbackInstance.setPositionAsync(${clampedPosition})`);
+        
+        await instance.setPositionAsync(clampedPosition);
+        
+        const statusAfterSeek = await instance.getStatusAsync();
+        if (statusAfterSeek.isLoaded) {
+            console.log(`[PlayerContext] Seek finished, applying status: positionMillis=${statusAfterSeek.positionMillis}`);
+            setPlaybackStatus(statusAfterSeek); 
+            setIsPlaying(statusAfterSeek.isPlaying); 
+        } else {
+             console.log('[PlayerContext] Seek finished, but instance unloaded unexpectedly.');
         }
-        console.log('[CONTEXT] setPositionAsync finished.');
+        
       } catch (e) {
-        console.error('[CONTEXT] Failed to seek track', e);
+        console.error('[PlayerContext] Failed to seek track', e);
       } finally {
+        // Use timeout to ensure seeking flag is reset after potential state updates
         setTimeout(() => { 
-            console.log('[CONTEXT] Re-enabling status updates after seek timeout.');
+            console.log('[PlayerContext] Seek finished, resetting isSeeking=false');
             isSeeking.current = false; 
-        }, 150); 
+        }, 50); // Shorter timeout might be okay now
       }
     } else {
-        console.log('[CONTEXT] Seek failed: No instance or duration info.');
+        console.log('[PlayerContext] Seek failed: No instance or duration info.');
     }
   };
 
@@ -287,16 +307,17 @@ export const PlayerProvider = ({ children }) => {
       value={{
         currentTrack,
         isPlaying,
-        playbackInstance,
+        isLoadingTrack, 
+        playbackInstance, 
         playbackStatus,
-        queue, // Expose queue
-        currentIndex, // Expose index
-        loadTrack, // Expose updated loadTrack
+        queue, 
+        currentIndex, 
+        loadTrack, 
         play,
         pause,
         seek,
-        playNext, // Expose playNext
-        playPrevious, // Expose playPrevious
+        playNext, 
+        playPrevious, 
       }}
     >
       {children}
@@ -304,7 +325,6 @@ export const PlayerProvider = ({ children }) => {
   );
 };
 
-// Custom hook remains the same
 export const usePlayer = () => {
   const context = useContext(PlayerContext);
   if (!context) {

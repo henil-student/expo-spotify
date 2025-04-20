@@ -7,7 +7,7 @@ import {
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator
+  ActivityIndicator 
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -17,41 +17,44 @@ import { usePlayer } from '../context/PlayerContext';
 const placeholderArtwork = require('../assets/images/albums/placeholder.jpg');
 
 const ModalMusicPlayer = ({ navigation }) => {
-  // Get state and functions from usePlayer, including queue logic
   const { 
     currentTrack, 
     isPlaying, 
+    isLoadingTrack, 
     playbackStatus, 
     play, 
     pause, 
     seek, 
-    playNext,        // Added
-    playPrevious,    // Added
-    queue,           // Added
-    currentIndex     // Added
+    playNext,        
+    playPrevious,    
+    queue,           
+    currentIndex     
   } = usePlayer();
 
   const [isSeeking, setIsSeeking] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
 
-  // Calculate progress and times
   const positionMillis = playbackStatus?.positionMillis || 0;
   const durationMillis = playbackStatus?.durationMillis || 0;
-  const currentPosition = func.formatTime(positionMillis);
-  const totalDuration = func.formatTime(durationMillis);
+  
+  // Log the values being used for display
+  console.log(`[ModalMusicPlayer] Rendering - positionMillis: ${positionMillis}, durationMillis: ${durationMillis}, isPlaying: ${isPlaying}, isLoading: ${isLoadingTrack}`);
+  
+  const currentPosition = func.formatTime(positionMillis); // Uses updated formatTime
+  const totalDuration = func.formatTime(durationMillis); // Uses updated formatTime
   const sliderProgress = durationMillis > 0 ? positionMillis / durationMillis : 0;
 
-  // Update slider effect
   useEffect(() => {
-    if (!isSeeking && playbackStatus?.isLoaded) {
+    if (!isSeeking && playbackStatus?.isLoaded && !isLoadingTrack) { 
+      // console.log(`[ModalMusicPlayer] Updating slider value: ${sliderProgress}`);
       setSliderValue(sliderProgress);
     }
-  }, [sliderProgress, isSeeking, playbackStatus]);
+  }, [sliderProgress, isSeeking, playbackStatus, isLoadingTrack]);
 
-  // Handlers
   const handleClose = () => navigation.goBack();
 
   const handlePlayPause = () => {
+    if (isLoadingTrack) return; 
     if (isPlaying) {
       pause();
     } else {
@@ -59,27 +62,40 @@ const ModalMusicPlayer = ({ navigation }) => {
     }
   };
 
-  // Connect skip handlers to context functions
-  const handleSkipPrev = () => playPrevious(); 
-  const handleSkipNext = () => playNext();
+  const handleSkipPrev = () => {
+    if (isLoadingTrack) return; 
+    playPrevious(); 
+  }
+  const handleSkipNext = () => {
+    if (isLoadingTrack) return; 
+    playNext();
+  }
 
-  // Slider handlers
-  const onSlidingStart = () => setIsSeeking(true);
-  const onValueChange = (value) => setSliderValue(value);
+  const onSlidingStart = () => {
+     if (isLoadingTrack) return; 
+     setIsSeeking(true);
+     console.log("[ModalMusicPlayer] Slider start");
+  }
+  const onValueChange = (value) => {
+     if (isLoadingTrack) return; 
+     // console.log(`[ModalMusicPlayer] Slider value change: ${value}`);
+     setSliderValue(value);
+  }
   const onSlidingComplete = async (value) => {
+    if (isLoadingTrack) return; 
     setIsSeeking(false);
     if (durationMillis > 0) {
       const seekMillis = value * durationMillis;
+      console.log(`[ModalMusicPlayer] Slider complete - seeking to: ${seekMillis}`);
       await seek(seekMillis);
     }
   };
 
-  // Determine if skip buttons should be disabled
   const isFirstTrack = currentIndex === 0;
   const isLastTrack = currentIndex === queue.length - 1;
+  const disableControls = isLoadingTrack; 
 
-  // Loading state
-  if (!currentTrack || !playbackStatus?.isLoaded) {
+  if (!currentTrack) { 
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
          <TouchableOpacity 
@@ -89,13 +105,13 @@ const ModalMusicPlayer = ({ navigation }) => {
          >
            <Icon name="chevron-down" size={30} color={colors.white} />
          </TouchableOpacity>
-        <ActivityIndicator color={colors.white} />
+        <ActivityIndicator color={colors.white} size="large"/>
+        <Text style={styles.loadingText}>Loading Track...</Text>
       </SafeAreaView>
     );
   }
 
-  // Track data is available
-  const { title, artist, artwork, album } = currentTrack;
+  const { title, artist, artwork, album } = currentTrack; 
   const imageSource = artwork ? { uri: artwork } : placeholderArtwork;
 
   return (
@@ -140,52 +156,58 @@ const ModalMusicPlayer = ({ navigation }) => {
           onSlidingStart={onSlidingStart}
           onValueChange={onValueChange}
           onSlidingComplete={onSlidingComplete}
+          disabled={disableControls} 
         />
         <View style={styles.timeContainer}>
-          <Text style={styles.timeText}>{currentPosition}</Text>
+          {/* Display the formatted current position */}
+          <Text style={styles.timeText}>{currentPosition}</Text> 
           <Text style={styles.timeText}>{totalDuration}</Text>
         </View>
       </View>
 
       {/* Controls */}
       <View style={styles.controlsContainer}>
-         <TouchableOpacity onPress={() => console.log('Shuffle')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-           <Icon name="shuffle-variant" size={24} color={colors.greyInactive} />
+         <TouchableOpacity onPress={() => console.log('Shuffle')} disabled={disableControls} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+           <Icon name="shuffle-variant" size={24} color={disableControls ? colors.greyInactive : colors.white} />
          </TouchableOpacity>
 
         {/* Previous Button */}
         <TouchableOpacity 
           onPress={handleSkipPrev} 
-          disabled={isFirstTrack} // Disable if first track
+          disabled={isFirstTrack || disableControls} 
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Icon 
             name="skip-previous" 
             size={40} 
-            color={isFirstTrack ? colors.greyInactive : colors.white} // Dim if disabled
+            color={(isFirstTrack || disableControls) ? colors.greyInactive : colors.white} 
           />
         </TouchableOpacity>
 
         {/* Play/Pause Button */}
-        <TouchableOpacity onPress={handlePlayPause} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Icon name={isPlaying ? "pause-circle" : "play-circle"} size={72} color={colors.white} />
+        <TouchableOpacity onPress={handlePlayPause} disabled={disableControls} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          {isLoadingTrack ? (
+            <ActivityIndicator color={colors.white} size="large" style={styles.playPauseLoader} />
+          ) : (
+            <Icon name={isPlaying ? "pause-circle" : "play-circle"} size={72} color={colors.white} />
+          )}
         </TouchableOpacity>
 
         {/* Next Button */}
         <TouchableOpacity 
           onPress={handleSkipNext} 
-          disabled={isLastTrack} // Disable if last track
+          disabled={isLastTrack || disableControls} 
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Icon 
             name="skip-next" 
             size={40} 
-            color={isLastTrack ? colors.greyInactive : colors.white} // Dim if disabled
+            color={(isLastTrack || disableControls) ? colors.greyInactive : colors.white} 
           />
         </TouchableOpacity>
 
-         <TouchableOpacity onPress={() => console.log('Repeat')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-           <Icon name="repeat" size={24} color={colors.greyInactive} />
+         <TouchableOpacity onPress={() => console.log('Repeat')} disabled={disableControls} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+           <Icon name="repeat" size={24} color={disableControls ? colors.greyInactive : colors.white} />
          </TouchableOpacity>
       </View>
 
@@ -202,7 +224,7 @@ ModalMusicPlayer.propTypes = {
   navigation: PropTypes.object.isRequired,
 };
 
-// Styles remain the same as before...
+// Styles remain largely the same...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -213,6 +235,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+   loadingText: { 
+     ...gStyle.textSpotify16,
+     color: colors.white,
+     marginTop: 10,
+   },
   closeButtonLoading: { 
      position: 'absolute',
      top: device.iPhoneX ? 50 : 24,
@@ -271,7 +298,7 @@ const styles = StyleSheet.create({
   },
   slider: {
     width: '100%',
-    height: 20,
+    height: 20, 
   },
   timeContainer: {
     flexDirection: 'row',
@@ -289,6 +316,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     marginTop: 20,
   },
+   playPauseLoader: { 
+     width: 72, 
+     height: 72, 
+   },
   footerContainer: {
     marginTop: 'auto',
     paddingBottom: 20,

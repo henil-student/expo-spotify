@@ -35,18 +35,28 @@ const loadAssetsAsync = async () => {
   return Promise.all([fontAssetsPromise, ...imageAssetsPromises]);
 };
 
-// format seconds
+// format milliseconds to M:SS
 // /////////////////////////////////////////////////////////////////////////////
-// This function remains the same
-const formatTime = (sec) => {
-  if (sec === null || sec === undefined || isNaN(sec)) return '0:00'; // Add check for invalid input
-  const padTime = (num, size) => `000${num}`.slice(size * -1);
-  const time = parseFloat(sec).toFixed(3);
-  const minutes = Math.floor(time / 60) % 60;
-  const seconds = Math.floor(time - minutes * 60);
+const formatTime = (millis) => {
+  // Check for invalid input (null, undefined, NaN)
+  if (millis === null || millis === undefined || isNaN(millis) || millis < 0) {
+      return '0:00'; 
+  }
+  
+  // Convert milliseconds to total seconds
+  const totalSeconds = Math.floor(millis / 1000);
+  
+  // Calculate minutes and remaining seconds
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  
+  // Helper function to pad seconds with a leading zero if needed
+  const padTime = (num) => String(num).padStart(2, '0');
 
-  return `${padTime(minutes, 1)}:${padTime(seconds, 2)}`;
+  // Return formatted string M:SS
+  return `${minutes}:${padTime(seconds)}`;
 };
+
 
 // format numbers (e.g., add commas)
 // /////////////////////////////////////////////////////////////////////////////
