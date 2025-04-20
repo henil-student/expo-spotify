@@ -43,7 +43,7 @@ export const PlayerProvider = ({ children }) => {
           playThroughEarpieceAndroid: false,
           staysActiveInBackground: true,
         });
-        console.log('Audio mode configured successfully.');
+        // console.log('Audio mode configured successfully.'); // Keep this one maybe
       } catch (e) {
         console.error('Failed to set audio mode', e);
       }
@@ -54,45 +54,47 @@ export const PlayerProvider = ({ children }) => {
   // Unload sound on unmount
   useEffect(() => {
     return () => {
-      console.log('PlayerProvider unmounting. Unloading sound.');
+      // console.log('PlayerProvider unmounting. Unloading sound.'); // Keep this one maybe
       currentPlaybackInstanceRef.current?.unloadAsync(); 
     };
   }, []); 
 
   // Update playback status handler
   const onPlaybackStatusUpdate = (status) => {
-    // Add logging here
-    console.log(`[PlayerContext] onPlaybackStatusUpdate: isLoaded=${status.isLoaded}, isPlaying=${status.isPlaying}, positionMillis=${status.positionMillis}, didJustFinish=${status.didJustFinish}, isSeeking=${isSeeking.current}`);
+    // REMOVED console.log(`[PlayerContext] onPlaybackStatusUpdate: ...`);
     
     if (!status.isLoaded) {
       if (status.error) {
          console.error(`[PlayerContext] Playback Error: ${status.error}`);
          setIsLoadingTrack(false); 
       }
-      // Update status even if not loaded, might contain error info or indicate unload
-      // Only update if it's different? Avoid unnecessary re-renders.
-      // setPlaybackStatus(status); 
+      // Consider setting status to null or a minimal unloaded state here?
+      // setPlaybackStatus(prevStatus => (prevStatus?.isLoaded ? status : prevStatus)); // Only update if it was previously loaded?
       return; 
     }
 
     // Only update state if not currently seeking manually
     if (!isSeeking.current) {
-      // Log the update being applied
-      console.log(`[PlayerContext] Applying status update: positionMillis=${status.positionMillis}`);
-      setPlaybackStatus(status);
-      setIsPlaying(status.isPlaying); 
-      setIsLoadingTrack(false); 
+      // REMOVED console.log(`[PlayerContext] Applying status update: ...`);
+      
+      // Optimization: Only update if necessary? Compare with previous status.
+      // This adds complexity, let's see if removing logs is enough first.
+      setPlaybackStatus(status); 
+      
+      // Only update isPlaying/isLoadingTrack if they actually changed
+      setIsPlaying(prev => prev !== status.isPlaying ? status.isPlaying : prev);
+      setIsLoadingTrack(prev => prev ? false : prev); // Set loading to false if it was true
 
       // Handle track finishing
       if (status.didJustFinish && !status.isLooping) {
-        console.log('[PlayerContext] Track finished naturally.');
+        console.log('[PlayerContext] Track finished naturally.'); // Keep this log
         const nextIndex = currentIndex !== null ? currentIndex + 1 : null;
         if (nextIndex !== null && nextIndex < queue.length) {
-          console.log(`[PlayerContext] Preparing to load next track at index: ${nextIndex}`);
+          // console.log(`[PlayerContext] Preparing to load next track at index: ${nextIndex}`); // Remove?
           const nextTrack = queue[nextIndex];
           _loadAudio(nextTrack, nextIndex); 
         } else {
-          console.log('[PlayerContext] End of queue reached after track finish.');
+          console.log('[PlayerContext] End of queue reached after track finish.'); // Keep this log
            if (currentPlaybackInstanceRef.current) { 
               currentPlaybackInstanceRef.current.stopAsync(); 
            }
@@ -100,7 +102,7 @@ export const PlayerProvider = ({ children }) => {
         }
       }
     } else {
-        console.log("[PlayerContext] Ignoring status update while seeking.");
+        // REMOVED console.log("[PlayerContext] Ignoring status update while seeking.");
     }
   };
 
@@ -112,7 +114,7 @@ export const PlayerProvider = ({ children }) => {
       return false; 
     }
 
-    console.log(`[PlayerContext] Loading audio for track: ${track.title} at index ${indexToSet}`);
+    // console.log(`[PlayerContext] Loading audio for track: ${track.title} at index ${indexToSet}`); // Remove?
     setIsLoadingTrack(true); 
     setIsPlaying(false); 
     
@@ -122,7 +124,7 @@ export const PlayerProvider = ({ children }) => {
     const oldPlaybackInstance = currentPlaybackInstanceRef.current; 
 
     try {
-      console.log('[PlayerContext] Calling Audio.Sound.createAsync...');
+      // console.log('[PlayerContext] Calling Audio.Sound.createAsync...'); // Remove?
       const { sound: newSound, status: initialStatus } = await Audio.Sound.createAsync(
         { uri: track.previewUrl },
         { 
@@ -131,24 +133,24 @@ export const PlayerProvider = ({ children }) => {
         }, 
         onPlaybackStatusUpdate 
       );
-      console.log('[PlayerContext] Audio loaded successfully. New instance created.');
+      // console.log('[PlayerContext] Audio loaded successfully. New instance created.'); // Remove?
 
       currentPlaybackInstanceRef.current = newSound; 
       
       setPlaybackInstance(newSound); 
       setPlaybackStatus(initialStatus); 
-      console.log('[PlayerContext] New playback instance set.');
+      // console.log('[PlayerContext] New playback instance set.'); // Remove?
 
       if (oldPlaybackInstance) {
-        console.log('[PlayerContext] Unloading previous playback instance.');
+        // console.log('[PlayerContext] Unloading previous playback instance.'); // Remove?
         await oldPlaybackInstance.unloadAsync();
-        console.log('[PlayerContext] Previous instance unloaded.');
+        // console.log('[PlayerContext] Previous instance unloaded.'); // Remove?
       }
       
       return true; 
 
     } catch (e) {
-      console.error('[PlayerContext] Failed to load audio', e);
+      console.error('[PlayerContext] Failed to load audio', e); // Keep error logs
        if (oldPlaybackInstance) {
           try { await oldPlaybackInstance.stopAsync(); } catch {} 
        }
@@ -165,13 +167,13 @@ export const PlayerProvider = ({ children }) => {
 
   // Exposed function to load track(s) and set the queue
   const loadTrack = async (initialTrack, trackQueue = [], initialIndex = 0) => {
-    console.log(`[PlayerContext] loadTrack called. Index: ${initialIndex}, Queue length: ${trackQueue.length}`);
+    // console.log(`[PlayerContext] loadTrack called. Index: ${initialIndex}, Queue length: ${trackQueue.length}`); // Remove?
     const validQueue = Array.isArray(trackQueue) ? trackQueue : [];
     const validIndex = (typeof initialIndex === 'number' && initialIndex >= 0 && initialIndex < validQueue.length) ? initialIndex : 0;
     const trackToLoad = validQueue[validIndex] || initialTrack; 
 
     if (!trackToLoad) {
-        console.error("[PlayerContext] No valid track to load.");
+        console.error("[PlayerContext] No valid track to load."); // Keep error
         return;
     }
 
@@ -181,21 +183,20 @@ export const PlayerProvider = ({ children }) => {
 
   // Play next track in the queue
   const playNext = async () => {
-    console.log('[PlayerContext] playNext called manually.');
-    if (isLoadingTrack) { console.log("[PlayerContext] Already loading track, ignoring manual playNext."); return; } 
+    // console.log('[PlayerContext] playNext called manually.'); // Remove?
+    if (isLoadingTrack) { /* console.log("[PlayerContext] Already loading track, ignoring manual playNext."); */ return; } 
     if (queue.length === 0 || currentIndex === null) {
-      console.log('[PlayerContext] PlayNext: No queue or index.');
+      // console.log('[PlayerContext] PlayNext: No queue or index.'); // Remove?
       return;
     }
 
     const nextIndex = currentIndex + 1;
     if (nextIndex < queue.length) {
-      console.log(`[PlayerContext] Manually playing next track at index: ${nextIndex}`);
+      // console.log(`[PlayerContext] Manually playing next track at index: ${nextIndex}`); // Remove?
       const nextTrack = queue[nextIndex];
       await _loadAudio(nextTrack, nextIndex); 
     } else {
-      
-      console.log('[PlayerContext] End of queue reached on manual next.');
+      // console.log('[PlayerContext] End of queue reached on manual next.'); // Remove?
        if (currentPlaybackInstanceRef.current) { 
           await currentPlaybackInstanceRef.current.stopAsync(); 
        }
@@ -205,27 +206,27 @@ export const PlayerProvider = ({ children }) => {
 
   // Play previous track in the queue
   const playPrevious = async () => {
-    console.log('[PlayerContext] playPrevious called manually.');
-     if (isLoadingTrack) { console.log("[PlayerContext] Already loading track, ignoring manual playPrevious."); return; } 
+    // console.log('[PlayerContext] playPrevious called manually.'); // Remove?
+     if (isLoadingTrack) { /* console.log("[PlayerContext] Already loading track, ignoring manual playPrevious."); */ return; } 
      if (queue.length === 0 || currentIndex === null) {
-      console.log('[PlayerContext] PlayPrevious: No queue or index.');
+      // console.log('[PlayerContext] PlayPrevious: No queue or index.'); // Remove?
       return;
     }
 
     const currentPositionMs = playbackStatus?.positionMillis || 0;
     if (currentPositionMs > 3000 && currentIndex >= 0) { 
-        console.log('[PlayerContext] Seeking to beginning of current track.');
+        // console.log('[PlayerContext] Seeking to beginning of current track.'); // Remove?
         await seek(0);
         return; 
     }
 
     const prevIndex = currentIndex - 1;
     if (prevIndex >= 0) {
-      console.log(`[PlayerContext] Manually playing previous track at index: ${prevIndex}`);
+      // console.log(`[PlayerContext] Manually playing previous track at index: ${prevIndex}`); // Remove?
       const prevTrack = queue[prevIndex];
       await _loadAudio(prevTrack, prevIndex); 
     } else {
-      console.log('[PlayerContext] Start of queue reached on manual previous.');
+      // console.log('[PlayerContext] Start of queue reached on manual previous.'); // Remove?
       if (currentPositionMs !== 0) {
           await seek(0);
       }
@@ -234,71 +235,70 @@ export const PlayerProvider = ({ children }) => {
 
   // Playback controls
   const play = async () => {
-    console.log('[PlayerContext] Play function called.');
+    // console.log('[PlayerContext] Play function called.'); // Remove?
     const instance = currentPlaybackInstanceRef.current; 
     if (instance) {
       try {
-        console.log('[PlayerContext] Attempting playbackInstance.playAsync()');
+        // console.log('[PlayerContext] Attempting playbackInstance.playAsync()'); // Remove?
         await instance.playAsync();
       } catch (e) {
-        console.error('[PlayerContext] Failed to play track', e);
+        console.error('[PlayerContext] Failed to play track', e); // Keep error
       }
     } else if (currentTrack) {
-      console.log('[PlayerContext] Playback instance not found, reloading current track...');
+      // console.log('[PlayerContext] Playback instance not found, reloading current track...'); // Remove?
       await _loadAudio(currentTrack, currentIndex); 
     } else {
-      console.log('[PlayerContext] Play called but no track loaded.'); 
+      // console.log('[PlayerContext] Play called but no track loaded.'); // Remove?
     }
   };
 
   const pause = async () => {
-    console.log('[PlayerContext] Pause function called.');
+    // console.log('[PlayerContext] Pause function called.'); // Remove?
     const instance = currentPlaybackInstanceRef.current; 
     if (instance) {
       try {
-        console.log('[PlayerContext] Attempting playbackInstance.pauseAsync()');
+        // console.log('[PlayerContext] Attempting playbackInstance.pauseAsync()'); // Remove?
         await instance.pauseAsync();
       } catch (e) {
-        console.error('[PlayerContext] Failed to pause track', e);
+        console.error('[PlayerContext] Failed to pause track', e); // Keep error
       }
     }
   };
 
   const seek = async (positionMillis) => {
-    console.log(`[PlayerContext] Seek function called: ${positionMillis}ms`);
+    // console.log(`[PlayerContext] Seek function called: ${positionMillis}ms`); // Remove?
     const instance = currentPlaybackInstanceRef.current; 
     const currentStatus = instance ? await instance.getStatusAsync() : playbackStatus; 
 
     if (instance && currentStatus?.isLoaded && currentStatus?.durationMillis) {
       isSeeking.current = true;
-      console.log('[PlayerContext] Seek started, isSeeking=true');
+      // console.log('[PlayerContext] Seek started, isSeeking=true'); // Remove?
 
       try {
         const clampedPosition = Math.max(0, Math.min(positionMillis, currentStatus.durationMillis));
-        console.log(`[PlayerContext] Attempting playbackInstance.setPositionAsync(${clampedPosition})`);
+        // console.log(`[PlayerContext] Attempting playbackInstance.setPositionAsync(${clampedPosition})`); // Remove?
         
         await instance.setPositionAsync(clampedPosition);
         
         const statusAfterSeek = await instance.getStatusAsync();
         if (statusAfterSeek.isLoaded) {
-            console.log(`[PlayerContext] Seek finished, applying status: positionMillis=${statusAfterSeek.positionMillis}`);
+            // console.log(`[PlayerContext] Seek finished, applying status: positionMillis=${statusAfterSeek.positionMillis}`); // Remove?
             setPlaybackStatus(statusAfterSeek); 
             setIsPlaying(statusAfterSeek.isPlaying); 
         } else {
-             console.log('[PlayerContext] Seek finished, but instance unloaded unexpectedly.');
+             // console.log('[PlayerContext] Seek finished, but instance unloaded unexpectedly.'); // Remove?
         }
         
       } catch (e) {
-        console.error('[PlayerContext] Failed to seek track', e);
+        console.error('[PlayerContext] Failed to seek track', e); // Keep error
       } finally {
-        // Use timeout to ensure seeking flag is reset after potential state updates
         setTimeout(() => { 
-            console.log('[PlayerContext] Seek finished, resetting isSeeking=false');
+            // console.log('[PlayerContext] Seek finished, resetting isSeeking=false'); // Remove?
             isSeeking.current = false; 
-        }, 50); // Shorter timeout might be okay now
+        }, 50); 
       }
     } else {
-        console.log('[PlayerContext] Seek failed: No instance or duration info.');
+        // console.log('[PlayerContext] Seek failed: No instance or duration info.'); // Remove?
     }
   };
 

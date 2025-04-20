@@ -37,16 +37,14 @@ const ModalMusicPlayer = ({ navigation }) => {
   const positionMillis = playbackStatus?.positionMillis || 0;
   const durationMillis = playbackStatus?.durationMillis || 0;
   
-  // Log the values being used for display
-  console.log(`[ModalMusicPlayer] Rendering - positionMillis: ${positionMillis}, durationMillis: ${durationMillis}, isPlaying: ${isPlaying}, isLoading: ${isLoadingTrack}`);
+  // REMOVED console.log(`[ModalMusicPlayer] Rendering - ...`); 
   
-  const currentPosition = func.formatTime(positionMillis); // Uses updated formatTime
-  const totalDuration = func.formatTime(durationMillis); // Uses updated formatTime
+  const currentPosition = func.formatTime(positionMillis); 
+  const totalDuration = func.formatTime(durationMillis); 
   const sliderProgress = durationMillis > 0 ? positionMillis / durationMillis : 0;
 
   useEffect(() => {
     if (!isSeeking && playbackStatus?.isLoaded && !isLoadingTrack) { 
-      // console.log(`[ModalMusicPlayer] Updating slider value: ${sliderProgress}`);
       setSliderValue(sliderProgress);
     }
   }, [sliderProgress, isSeeking, playbackStatus, isLoadingTrack]);
@@ -74,11 +72,10 @@ const ModalMusicPlayer = ({ navigation }) => {
   const onSlidingStart = () => {
      if (isLoadingTrack) return; 
      setIsSeeking(true);
-     console.log("[ModalMusicPlayer] Slider start");
+     // REMOVED console.log("[ModalMusicPlayer] Slider start");
   }
   const onValueChange = (value) => {
      if (isLoadingTrack) return; 
-     // console.log(`[ModalMusicPlayer] Slider value change: ${value}`);
      setSliderValue(value);
   }
   const onSlidingComplete = async (value) => {
@@ -86,7 +83,8 @@ const ModalMusicPlayer = ({ navigation }) => {
     setIsSeeking(false);
     if (durationMillis > 0) {
       const seekMillis = value * durationMillis;
-      console.log(`[ModalMusicPlayer] Slider complete - seeking to: ${seekMillis}`);
+      // Keep this log for debugging seek specifically if needed later
+      // console.log(`[ModalMusicPlayer] Slider complete - seeking to: ${seekMillis}`); 
       await seek(seekMillis);
     }
   };
@@ -159,7 +157,6 @@ const ModalMusicPlayer = ({ navigation }) => {
           disabled={disableControls} 
         />
         <View style={styles.timeContainer}>
-          {/* Display the formatted current position */}
           <Text style={styles.timeText}>{currentPosition}</Text> 
           <Text style={styles.timeText}>{totalDuration}</Text>
         </View>
