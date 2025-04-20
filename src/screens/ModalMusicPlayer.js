@@ -17,6 +17,7 @@ import { usePlayer } from '../context/PlayerContext';
 const placeholderArtwork = require('../assets/images/albums/placeholder.jpg');
 
 const ModalMusicPlayer = ({ navigation }) => {
+  // Player context state
   const { 
     currentTrack, 
     isPlaying, 
@@ -31,24 +32,27 @@ const ModalMusicPlayer = ({ navigation }) => {
     currentIndex     
   } = usePlayer();
 
+  // Local state for UI interaction
   const [isSeeking, setIsSeeking] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
+  const [isShuffleActive, setIsShuffleActive] = useState(false); // Local state for shuffle UI
+  const [repeatMode, setRepeatMode] = useState('off'); // Local state for repeat UI ('off', 'queue', 'track')
 
+  // Derived values
   const positionMillis = playbackStatus?.positionMillis || 0;
   const durationMillis = playbackStatus?.durationMillis || 0;
-  
-  // REMOVED console.log(`[ModalMusicPlayer] Rendering - ...`); 
-  
   const currentPosition = func.formatTime(positionMillis); 
   const totalDuration = func.formatTime(durationMillis); 
   const sliderProgress = durationMillis > 0 ? positionMillis / durationMillis : 0;
 
+  // Effect to update slider based on playback status
   useEffect(() => {
     if (!isSeeking && playbackStatus?.isLoaded && !isLoadingTrack) { 
       setSliderValue(sliderProgress);
     }
   }, [sliderProgress, isSeeking, playbackStatus, isLoadingTrack]);
 
+  // Handlers for player controls
   const handleClose = () => navigation.goBack();
 
   const handlePlayPause = () => {
@@ -69,10 +73,10 @@ const ModalMusicPlayer = ({ navigation }) => {
     playNext();
   }
 
+  // Handlers for slider interaction
   const onSlidingStart = () => {
      if (isLoadingTrack) return; 
      setIsSeeking(true);
-     // REMOVED console.log("[ModalMusicPlayer] Slider start");
   }
   const onValueChange = (value) => {
      if (isLoadingTrack) return; 
@@ -83,16 +87,33 @@ const ModalMusicPlayer = ({ navigation }) => {
     setIsSeeking(false);
     if (durationMillis > 0) {
       const seekMillis = value * durationMillis;
-      // Keep this log for debugging seek specifically if needed later
-      // console.log(`[ModalMusicPlayer] Slider complete - seeking to: ${seekMillis}`); 
       await seek(seekMillis);
     }
   };
 
+  // Handlers for UI-only Shuffle/Repeat toggles
+  const handleToggleShuffle = () => {
+    if (disableControls) return; // Prevent toggle if controls are disabled
+    setIsShuffleActive(prev => !prev);
+    console.log('Shuffle Toggled (UI Only)'); // Optional log
+  };
+
+  const handleToggleRepeat = () => {
+    if (disableControls) return; // Prevent toggle if controls are disabled
+    setRepeatMode(prev => {
+      if (prev === 'off') return 'queue';
+      if (prev === 'queue') return 'track';
+      return 'off'; // Cycle back to 'off' from 'track'
+    });
+    console.log('Repeat Toggled (UI Only)'); // Optional log
+  };
+
+  // Determine disabled states
   const isFirstTrack = currentIndex === 0;
   const isLastTrack = currentIndex === queue.length - 1;
   const disableControls = isLoadingTrack; 
 
+  // Loading screen if no track is loaded initially
   if (!currentTrack) { 
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
@@ -109,8 +130,14 @@ const ModalMusicPlayer = ({ navigation }) => {
     );
   }
 
+  // Main player UI
   const { title, artist, artwork, album } = currentTrack; 
   const imageSource = artwork ? { uri: artwork } : placeholderArtwork;
+
+  // Determine icon colors based on state
+  const shuffleColor = isShuffleActive ? colors.brandPrimary : (disableControls ? colors.greyInactive : colors.white);
+  const repeatColor = repeatMode !== 'off' ? colors.brandPrimary : (disableControls ? colors.greyInactive : colors.white);
+  const repeatIconName = repeatMode === 'track' ? 'repeat-once' : 'repeat';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -164,8 +191,17 @@ const ModalMusicPlayer = ({ navigation }) => {
 
       {/* Controls */}
       <View style={styles.controlsContainer}>
-         <TouchableOpacity onPress={() => console.log('Shuffle')} disabled={disableControls} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-           <Icon name="shuffle-variant" size={24} color={disableControls ? colors.greyInactive : colors.white} />
+         {/* Shuffle Button */}
+         <TouchableOpacity 
+           onPress={handleToggleShuffle} // Use new handler
+           disabled={disableControls} 
+           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+         >
+           <Icon 
+             name="shuffle-variant" 
+             size={24} 
+             color={shuffleColor} // Use dynamic color
+           />
          </TouchableOpacity>
 
         {/* Previous Button */}
@@ -203,8 +239,17 @@ const ModalMusicPlayer = ({ navigation }) => {
           />
         </TouchableOpacity>
 
-         <TouchableOpacity onPress={() => console.log('Repeat')} disabled={disableControls} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-           <Icon name="repeat" size={24} color={disableControls ? colors.greyInactive : colors.white} />
+         {/* Repeat Button */}
+         <TouchableOpacity 
+           onPress={handleToggleRepeat} // Use new handler
+           disabled={disableControls} 
+           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+         >
+           <Icon 
+             name={repeatIconName} // Use dynamic icon name
+             size={24} 
+             color={repeatColor} // Use dynamic color
+           />
          </TouchableOpacity>
       </View>
 
