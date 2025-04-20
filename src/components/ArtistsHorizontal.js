@@ -3,24 +3,24 @@ import PropTypes from 'prop-types';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors, fonts, gStyle } from '../constants';
 
-// Default placeholder image
-const placeholderImage = require('../assets/images/albums/placeholder.jpg');
+// Default placeholder image for artists
+const placeholderArtistImage = require('../assets/images/user.png'); // Use user placeholder
 
-const AlbumsHorizontal = ({ data, heading, onPress }) => {
+const ArtistsHorizontal = ({ data, heading, onPress }) => {
   // Filter out items without a valid ID
   const validData = data.filter(item => item && item.id);
 
-  // Helper to determine image source
-  const getImageSource = (coverUrl) => {
-    if (typeof coverUrl === 'string' && coverUrl.startsWith('http')) {
+  // Helper to determine image source for artists
+  const getImageSource = (imageUrl) => {
+    if (typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
       // If it's a string starting with http, assume it's a URI
-      return { uri: coverUrl };
-    } else if (coverUrl) {
-      // Otherwise, assume it's a require() result (number) or already a source object
-      return coverUrl;
+      return { uri: imageUrl };
+    } else if (imageUrl) {
+      // Allow for potential require() results if needed later, though API likely provides URI
+      return imageUrl;
     }
     // Fallback to placeholder
-    return placeholderImage;
+    return placeholderArtistImage;
   };
 
   return (
@@ -36,15 +36,16 @@ const AlbumsHorizontal = ({ data, heading, onPress }) => {
           <TouchableOpacity
             activeOpacity={gStyle.activeOpacity}
             hitSlop={{ top: 10, left: 10, bottom: 10, right: 10 }}
-            onPress={() => onPress(item.id)}
+            onPress={() => onPress(item.id)} // Pass artist ID to onPress
             style={styles.item}
           >
             <Image
               // Use the helper function to determine the source format
-              source={getImageSource(item.coverUrl)}
-              style={styles.image}
+              source={getImageSource(item.imageUrl)} // Use imageUrl prop
+              style={[styles.image, styles.artistImage]} // Add specific style for circular artist image
             />
-            <Text style={styles.title}>{item.title}</Text>
+            {/* Display artist name */}
+            <Text style={styles.title}>{item.name}</Text> 
           </TouchableOpacity>
         )}
         showsHorizontalScrollIndicator={false}
@@ -53,24 +54,25 @@ const AlbumsHorizontal = ({ data, heading, onPress }) => {
   );
 };
 
-AlbumsHorizontal.defaultProps = {
+ArtistsHorizontal.defaultProps = {
   heading: null
 };
 
-AlbumsHorizontal.propTypes = {
+ArtistsHorizontal.propTypes = {
   // required
   data: PropTypes.arrayOf(PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-      title: PropTypes.string,
-      // Allow coverUrl to be a string (URI) or number (require result)
-      coverUrl: PropTypes.oneOfType([PropTypes.string, PropTypes.number]) 
+      name: PropTypes.string, // Expect artist name
+      // Allow imageUrl to be a string (URI) or number (require result)
+      imageUrl: PropTypes.oneOfType([PropTypes.string, PropTypes.number]) 
   })).isRequired,
-  onPress: PropTypes.func.isRequired,
+  onPress: PropTypes.func.isRequired, // Function to handle press, receives artistId
 
   // optional
   heading: PropTypes.string
 };
 
+// Base styles on AlbumsHorizontal, with adjustments for artists
 const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
@@ -88,13 +90,17 @@ const styles = StyleSheet.create({
   },
   item: {
     marginRight: 16,
-    width: 148
+    width: 148,
+    alignItems: 'center' // Center artist image and text
   },
   image: {
     backgroundColor: colors.greyLight,
     height: 148,
     width: 148,
     marginBottom: 8,
+  },
+  artistImage: {
+     borderRadius: 74 // Make image circular
   },
   title: {
     ...gStyle.textSpotifyBold12,
@@ -103,4 +109,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default AlbumsHorizontal;
+export default ArtistsHorizontal;
