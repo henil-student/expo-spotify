@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { StatusBar } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { func } from './src/constants';
+// Import the default export from functions.js
+import func from './src/constants/functions';
 
 // root stack navigation
 import RootStack from './src/navigation/RootStack';
@@ -19,11 +20,15 @@ function App() {
         await SplashScreen.preventAutoHideAsync();
 
         // pre-load/cache assets: images, fonts, and videos
+        // Use the default import object 'func'
         await func.loadAssetsAsync();
+        console.log('Assets loaded successfully.'); // Add success log
       } catch (e) {
-        // console.warn(e);
+        // Log any errors during asset loading
+        console.error('Error loading assets:', e);
       } finally {
         // loading is complete
+        console.log('Setting isLoading to false.'); // Add log
         setIsLoading(false);
       }
     }
@@ -35,7 +40,10 @@ function App() {
     // when loading is complete
     if (isLoading === false) {
       // hide splash function
-      const hideSplash = async () => SplashScreen.hideAsync();
+      const hideSplash = async () => {
+        await SplashScreen.hideAsync();
+        console.log('Splash screen hidden.'); // Add log
+      };
 
       // hide splash screen to show app
       hideSplash();
@@ -43,9 +51,11 @@ function App() {
   }, [isLoading]);
 
   if (isLoading) {
-    return null;
+    console.log('Rendering null while loading...'); // Add log
+    return null; // Keep returning null while loading
   }
 
+  console.log('Rendering AppNavigator...'); // Add log
   return (
     <AppState>
       <StatusBar barStyle="light-content" />

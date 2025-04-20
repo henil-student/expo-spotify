@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 // screens
 import HomeScreen from '../screens/Home';
 import AlbumScreen from '../screens/Album';
+import ArtistScreen from '../screens/Artist'; // Import Artist screen (will create next)
 
 const Stack = createNativeStackNavigator();
 
@@ -23,7 +24,15 @@ function StackHome() {
         options={{
           headerShown: false
         }}
-        initialParams={{ title: 'Extraordinary Machine' }}
+        // Removed initialParams as they should be passed during navigation
+        // initialParams={{ title: 'Extraordinary Machine' }}
+      />
+      <Stack.Screen // Add Artist screen to the stack
+        name="Artist"
+        component={ArtistScreen}
+        options={{
+          headerShown: false
+        }}
       />
     </Stack.Navigator>
   );

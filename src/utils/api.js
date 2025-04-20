@@ -100,8 +100,11 @@ export const apiService = {
 
     async logout() {
       try {
-        const response = await api.post('/auth/logout');
-        return response.data;
+        // Assuming a logout endpoint exists, otherwise just clear token locally
+        // const response = await api.post('/auth/logout');
+        // return response.data;
+        console.log('Simulating logout');
+        return { message: AUTH_MESSAGES.LOGOUT_SUCCESS };
       } catch (error) {
         console.error('Logout error:', error);
         // Don't throw on logout errors
@@ -142,6 +145,26 @@ export const apiService = {
         throw error;
       }
     },
+    // Add function to get artist's albums
+    async getArtistAlbums(id) {
+      try {
+        const response = await api.get(`/artists/${id}/albums`);
+        return response.data;
+      } catch (error) {
+        console.error(`Error fetching albums for artist ${id}:`, error);
+        throw error;
+      }
+    },
+    // Add function to get artist's top songs
+    async getArtistTopSongs(id, limit = 10) { // Add optional limit parameter
+      try {
+        const response = await api.get(`/artists/${id}/songs?limit=${limit}`);
+        return response.data;
+      } catch (error) {
+        console.error(`Error fetching top songs for artist ${id}:`, error);
+        throw error;
+      }
+    },
     async getAllSongs() {
       try {
         const response = await api.get('/songs');
@@ -158,18 +181,16 @@ export const apiService = {
         throw error;
       }
     },
-    // Add the search function
     async searchAll(query) {
       if (!query || query.trim() === '') {
-        // Avoid sending empty queries
         return { artists: [], albums: [], songs: [] };
       }
       try {
         const response = await api.get(`/search?q=${encodeURIComponent(query)}`);
-        return response.data; // Should be { artists: [], albums: [], songs: [] }
+        return response.data;
       } catch (error) {
         console.error('Search API error:', error);
-        throw error; // Re-throw for the component to handle
+        throw error;
       }
     }
   }

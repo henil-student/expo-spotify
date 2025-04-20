@@ -10,6 +10,7 @@ const searchController = require('../controllers/searchController'); // Import s
 router.get('/artists', artistController.getAllArtists);
 router.get('/artists/:id', artistController.getArtistById);
 router.get('/artists/:id/albums', artistController.getArtistAlbums);
+router.get('/artists/:id/songs', artistController.getArtistSongs); // Add route for artist songs
 router.post('/artists', authenticate, artistController.createArtist);
 router.put('/artists/:id', authenticate, artistController.updateArtist);
 router.delete('/artists/:id', authenticate, artistController.deleteArtist);
@@ -17,7 +18,7 @@ router.delete('/artists/:id', authenticate, artistController.deleteArtist);
 // Album routes
 router.get('/albums', albumController.getAllAlbums);
 router.get('/albums/:id', albumController.getAlbumById);
-router.get('/albums/:id/songs', albumController.getAlbumSongs);
+router.get('/albums/:id/songs', albumController.getAlbumSongs); // Note: This exists, might conflict if not careful? No, different base path.
 router.post('/albums', authenticate, albumController.createAlbum);
 router.put('/albums/:id', authenticate, albumController.updateAlbum);
 router.delete('/albums/:id', authenticate, albumController.deleteAlbum);
@@ -31,6 +32,6 @@ router.put('/songs/:id', authenticate, songController.updateSong);
 router.delete('/songs/:id', authenticate, songController.deleteSong);
 
 // Search route
-router.get('/search', searchController.searchAll); // Add search route
+router.get('/search', searchController.searchAll);
 
 module.exports = router;

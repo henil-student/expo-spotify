@@ -15,22 +15,26 @@ exports.getAllArtists = async (req, res) => {
 
 exports.getArtistById = async (req, res) => {
   try {
-    const artist = await Artist.findByPk(req.params.id, {
-      include: [
-        {
-          model: Album,
-          as: 'albums',
-          attributes: ['id', 'title', 'coverUrl', 'releaseDate', 'type'],
-          include: [
-            {
-              model: Song,
-              as: 'songs',
-              attributes: ['id', 'title', 'duration', 'trackNumber']
-            }
-          ]
-        }
-      ]
-    });
+    // Note: This currently fetches all albums and all their songs, which might be excessive.
+    // Consider fetching only basic artist info here and letting the frontend fetch albums/songs separately.
+    const artist = await Artist.findByPk(req.params.id);
+    // Removed includes for albums/songs to keep this focused on artist details
+    // const artist = await Artist.findByPk(req.params.id, {
+    //   include: [
+    //     {
+    //       model: Album,
+    //       as: 'albums',
+    //       attributes: ['id', 'title', 'coverUrl', 'releaseDate', 'type'],
+    //       include: [
+    //         {
+    //           model: Song,
+    //           as: 'songs',
+    //           attributes: ['id', 'title', 'duration', 'trackNumber']
+    //         }
+    //       ]
+    //     }
+    //   ]
+    // });
 
     if (!artist) {
       return res.status(404).json({ message: 'Artist not found' });
@@ -93,7 +97,7 @@ exports.deleteArtist = async (req, res) => {
   try {
     const { id } = req.params;
     const artist = await Artist.findByPk(id);
-    
+
     if (!artist) {
       return res.status(404).json({ message: 'Artist not found' });
     }
@@ -109,19 +113,27 @@ exports.deleteArtist = async (req, res) => {
 exports.getArtistAlbums = async (req, res) => {
   try {
     const { id } = req.params;
+    // Check if artist exists first (optional but good practice)
+    const artistExists = await Artist.findByPk(id);
+    if (!artistExists) {
+      return res.status(404).json({ message: 'Artist not found' });
+    }
+
     const albums = await Album.findAll({
       where: { artistId: id },
-      include: [
-        {
-          model: Song,
-          as: 'songs',
-          attributes: ['id', 'title', 'duration', 'trackNumber']
-        }
-      ],
+      // Removed song includes from here, fetch songs separately if needed per album
+      // include: [
+      //   {
+      //     model: Song,
+      //     as: 'songs',
+      //     attributes: ['id', 'title', 'duration', 'trackNumber']
+      //   }
+      // ],
       order: [
         ['releaseDate', 'DESC'],
         ['type', 'ASC'],
-        [{ model: Song, as: 'songs' }, 'trackNumber', 'ASC']
+        // Removed song ordering as songs are not included
+        // [{ model: Song, as: 'songs' }, 'trackNumber', 'ASC']
       ]
     });
 
@@ -129,5 +141,36 @@ exports.getArtistAlbums = async (req, res) => {
   } catch (error) {
     console.error('Error fetching artist albums:', error);
     res.status(500).json({ message: 'Error fetching artist albums' });
+  }
+};
+
+// New function to get top songs for an artist
+exports.getArtistSongs = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const limit = parseInt(req.query.limit, 10) || 10; // Allow specifying limit via query param, default 10
+
+    // Check if artist exists first
+    const artistExists = await Artist.findByPk(id);
+    if (!artistExists) {
+      return res.status(404).json({ message: 'Artist not found' });
+    }
+
+    const songs = await Song.findAll({
+      where: { artistId: id },
+      order: [['popularity', 'DESC']], // Order by popularity
+      limit: limit, // Limit the results
+      include: [
+        // Include album info needed for display/playback
+        { model: Album, as: 'album', attributes: ['id', 'title', 'coverUrl'] },
+        // Optionally include artist info again if needed by frontend structure
+        // { model: Artist, as: 'artist', attributes: ['id', 'name'] }
+      ]
+    });
+
+    res.json(songs);
+  } catch (error) {
+    console.error('Error fetching artist songs:', error);
+    res.status(500).json({ message: 'Error fetching artist songs' });
   }
 };

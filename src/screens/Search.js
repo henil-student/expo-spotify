@@ -24,7 +24,7 @@ import LineItemSong from '../components/LineItemSong'; // Import LineItemSong
 const placeholderImage = require('../assets/images/albums/placeholder.jpg');
 
 const Search = ({ navigation }) => { // Add navigation prop
-  const { showToast } = useToast();
+  const { showToast } = useToast(); // Keep showToast for error handling
   const { loadTrack } = usePlayer(); // Get loadTrack from player context
 
   // State for search input and results
@@ -93,11 +93,11 @@ const Search = ({ navigation }) => { // Add navigation prop
     navigation.navigate('Album', { albumId: album.id });
   };
 
-  // Handle artist item press (TODO: Create Artist screen)
+  // Handle artist item press - Updated to navigate
   const handleArtistPress = (artist) => {
-    console.log('Navigate to Artist:', artist.name);
-    // navigation.navigate('Artist', { artistId: artist.id }); // Needs Artist screen
-    showToast('info', 'Coming Soon', `Artist screen for ${artist.name} not implemented yet.`);
+    console.log('Navigate to Artist:', artist.name, artist.id);
+    navigation.navigate('Artist', { artistId: artist.id }); // Navigate to Artist screen
+    // showToast('info', 'Coming Soon', `Artist screen for ${artist.name} not implemented yet.`); // Remove toast
   };
 
   // Prepare sections for SectionList
@@ -123,7 +123,7 @@ const Search = ({ navigation }) => { // Add navigation prop
           <LineItemSong
             active={false} // Active state not applicable in search results?
             downloaded={false}
-            explicit={false}
+            explicit={item.explicit} // Pass explicit flag if available
             imageUri={item.album?.coverUrl} // Use album cover from song data
             onPress={() => handleSongPress(item)}
             songData={{
