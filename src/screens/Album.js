@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View, Image } from 'react-native';
-import { colors, device, fonts, gStyle } from '../constants';
+// Import func to access formatTime
+import { colors, device, fonts, gStyle, func } from '../constants';
 import { usePlayer } from '../context/PlayerContext'; 
 import { api } from '../utils/api'; 
 
@@ -38,16 +39,17 @@ const Album = ({ navigation, route }) => {
         const response = await api.get(`/albums/${albumId}`); 
         console.log('API Response:', response.data); 
         
-        if (response.data && response.data.id && response.data.songs) {
+        // Add more robust check for expected data structure
+        if (response.data && response.data.id && Array.isArray(response.data.songs)) {
            setAlbumData(response.data);
         } else {
+           console.error('Invalid data structure received:', response.data);
            throw new Error('Invalid data structure received from API');
         }
 
       } catch (err) {
         const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch album data';
-        console.error('API Error:', err);
-        console.error('API Error Details:', JSON.stringify(err)); 
+        console.error('API Error fetching album:', err);
         setError(errorMessage);
         Alert.alert('Error', errorMessage); 
       } finally {
@@ -138,17 +140,17 @@ const Album = ({ navigation, route }) => {
             </View>
           </View>
         }
-        renderItem={({ item, index }) => ( // Get index here
+        renderItem={({ item, index }) => (
           <LineItemSong
             active={currentTrack?.id === item.id} 
             downloaded={false} 
             explicit={false} 
             imageUri={coverUrl} 
-            onPress={() => handleSongPress(item, index)} // Pass index to handler
+            onPress={() => handleSongPress(item, index)}
             songData={{
               album: title,
               artist: artist?.name || 'Unknown Artist',
-              length: item.duration, 
+              length: func.formatTime(item.duration), // Format the duration before passing
               title: item.title 
             }}
           />

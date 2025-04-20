@@ -11,7 +11,8 @@ import {
   Image // Import Image for album/artist results
 } from 'react-native';
 import { debounce } from 'lodash'; // Import debounce
-import { colors, device, fonts, gStyle } from '../constants';
+// Import func for formatting time
+import { colors, device, fonts, gStyle, func } from '../constants'; 
 import { apiService } from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { usePlayer } from '../context/PlayerContext'; // Import usePlayer
@@ -97,7 +98,6 @@ const Search = ({ navigation }) => { // Add navigation prop
   const handleArtistPress = (artist) => {
     console.log('Navigate to Artist:', artist.name, artist.id);
     navigation.navigate('Artist', { artistId: artist.id }); // Navigate to Artist screen
-    // showToast('info', 'Coming Soon', `Artist screen for ${artist.name} not implemented yet.`); // Remove toast
   };
 
   // Prepare sections for SectionList
@@ -129,7 +129,8 @@ const Search = ({ navigation }) => { // Add navigation prop
             songData={{
               album: item.album?.title || 'Unknown Album',
               artist: item.artist?.name || 'Unknown Artist',
-              length: item.duration,
+              // Format the duration using func.formatTime
+              length: func.formatTime(item.duration), 
               title: item.title
             }}
           />

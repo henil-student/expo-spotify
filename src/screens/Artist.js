@@ -9,21 +9,19 @@ import {
   FlatList
 } from 'react-native';
 import PropTypes from 'prop-types';
-// Import default export 'func' instead of named export
-import { colors, device, fonts, gStyle, func } from '../constants';
+// Import default export 'func' which includes formatTime and formatNumber
+import { colors, device, fonts, gStyle, func } from '../constants'; 
 import { apiService } from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { usePlayer } from '../context/PlayerContext';
-// Remove named import for formatNumber if func is imported from index
-// import { formatNumber } from '../constants/functions'; 
 
 // components
 import ScreenHeader from '../components/ScreenHeader';
 import LineItemSong from '../components/LineItemSong';
-import AlbumsHorizontal from '../components/AlbumsHorizontal'; // Assuming this exists and works
+import AlbumsHorizontal from '../components/AlbumsHorizontal'; 
 
 // Default placeholder image
-const placeholderArtistImage = require('../assets/images/user.png'); // Or a specific artist placeholder
+const placeholderArtistImage = require('../assets/images/user.png'); 
 
 const Artist = ({ route, navigation }) => {
   const { artistId } = route.params;
@@ -168,12 +166,12 @@ const Artist = ({ route, navigation }) => {
                   songData={{
                     album: item.album?.title || '',
                     artist: artistDetails.name, // Already have artist name
-                    // Use func.formatTime if needed here, e.g. for length display
-                    length: item.duration, // Assuming duration is already formatted or LineItemSong handles it
+                    // Format the duration using func.formatTime
+                    length: func.formatTime(item.duration), 
                     title: item.title,
-                    trackNumber: index + 1 // Display track number in list
+                    // trackNumber: index + 1 // Display track number in list - LineItemSong doesn't support this yet
                   }}
-                  showTrackNumber // Prop to display track number
+                  // showTrackNumber // Prop to display track number - LineItemSong doesn't support this yet
                 />
               )}
               // Disable FlatList scrolling within ScrollView

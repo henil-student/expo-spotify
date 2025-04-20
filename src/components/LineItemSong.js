@@ -1,25 +1,22 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native'; // Added Image back for album art
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Import Icon
-import { colors, fonts, gStyle, func } from '../constants'; // Added func back
+import { StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { colors, fonts, gStyle } from '../constants';
 
-// Default placeholder image
 const placeholderImage = require('../assets/images/albums/placeholder.jpg');
 
 const LineItemSong = ({
   active,
-  downloaded, 
-  explicit, 
-  imageUri, 
+  downloaded,
+  explicit,
+  imageUri,
   onPress,
-  songData: { album, artist, length, title } 
+  songData: { album, artist, length, title }
 }) => {
-
   const imageSource = imageUri ? { uri: imageUri } : placeholderImage;
   const songColor = active ? colors.brandPrimary : colors.white;
 
-  // Reintroduce icons using conditional rendering
   const explicitIcon = explicit ? (
     <Icon name="alpha-e-box" size={16} color={colors.greyInactive} style={styles.iconExplicit} />
   ) : null;
@@ -31,20 +28,23 @@ const LineItemSong = ({
     <TouchableOpacity
       activeOpacity={gStyle.activeOpacity}
       onPress={onPress}
-      style={styles.container} 
+      style={styles.container}
     >
       <Image source={imageSource} style={styles.image} />
 
-      {/* Title/Artist Container */}
-      <View style={styles.containerSong}> 
-        <Text style={[styles.title, { color: songColor }]}>{title}</Text> 
-        <View style={gStyle.flexRowCenterAlign}> 
-          {/* Render icons directly adjacent to each other and the Text */}
-          {explicitIcon}{downloadIcon}<Text style={styles.artist}>{artist}</Text> 
+      <View style={styles.containerSong}>
+        <Text style={[styles.title, { color: songColor }]} numberOfLines={1}>{title}</Text>
+        <View style={gStyle.flexRowCenterAlign}>
+          {explicitIcon}{downloadIcon}<Text style={styles.artist} numberOfLines={1}>{artist}</Text>
         </View>
       </View>
 
-      {/* More Options Button */}
+      {length && (
+        <View style={styles.containerLength}>
+          <Text style={styles.length}>{length}</Text>
+        </View>
+      )}
+
       <TouchableOpacity
         hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
         onPress={() => { console.log(`More options for ${title}`); }}
@@ -56,18 +56,16 @@ const LineItemSong = ({
   );
 };
 
-// PropTypes and DefaultProps remain the same
-
 LineItemSong.propTypes = {
   active: PropTypes.bool,
   downloaded: PropTypes.bool,
   explicit: PropTypes.bool,
-  imageUri: PropTypes.string, // Album cover URI
+  imageUri: PropTypes.string,
   onPress: PropTypes.func.isRequired,
   songData: PropTypes.shape({
     album: PropTypes.string,
     artist: PropTypes.string.isRequired,
-    length: PropTypes.number, // Duration in seconds
+    length: PropTypes.string, // Changed from number to string
     title: PropTypes.string.isRequired
   }).isRequired
 };
@@ -76,25 +74,26 @@ LineItemSong.defaultProps = {
   active: false,
   downloaded: false,
   explicit: false,
-  imageUri: null,
+  imageUri: null
 };
 
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flexDirection: 'row',
-    alignItems: 'center', 
-    padding: 16,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     width: '100%',
   },
   image: {
-    width: 50,
-    height: 50,
+    width: 48,
+    height: 48,
     marginRight: 16,
   },
-  containerSong: { 
-    flex: 1, 
-    // height: 50, // Remove explicit height, allow content to define it
-    justifyContent: 'center', // Center vertically if needed (might not be necessary)
+  containerSong: {
+    flex: 1,
+    justifyContent: 'center',
+    marginRight: 8,
   },
   title: {
     ...gStyle.textSpotify16,
@@ -104,18 +103,26 @@ const styles = StyleSheet.create({
     ...gStyle.textSpotify12,
     color: colors.greyInactive,
   },
-  // Add icon styles back
-  iconExplicit: { 
+  iconExplicit: {
     marginRight: 4,
   },
-  iconDownloaded: { 
+  iconDownloaded: {
      marginRight: 4,
   },
-  containerMore: { 
+  containerLength: {
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 50, 
-    height: 50, // Keep height for alignment? Or remove if container aligns center
+  },
+  length: {
+    ...gStyle.textSpotify12,
+    color: colors.greyInactive,
+  },
+  containerMore: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
   }
 });
 
