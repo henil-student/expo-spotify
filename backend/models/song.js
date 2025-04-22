@@ -16,9 +16,16 @@ module.exports = (sequelize, DataTypes) => {
         as: 'artist'
       });
 
+      // Song can be liked by many Users through UserLike table
+      Song.belongsToMany(models.User, { 
+        through: models.UserLike, 
+        foreignKey: 'songId',   // key in the UserLike table that points to Song
+        otherKey: 'userId',     // key in the UserLike table that points to User
+        as: 'likedByUsers'    // Alias to use when fetching users who liked this song
+      });
+
       // Additional associations can be added later:
       // - Song can belong to many Playlists
-      // - Song can be liked by many Users
     }
   }
 

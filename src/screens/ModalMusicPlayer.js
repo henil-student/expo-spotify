@@ -13,6 +13,7 @@ import Slider from '@react-native-community/slider';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors, device, fonts, gStyle, func } from '../constants';
 import { usePlayer } from '../context/PlayerContext';
+import { useAuth } from '../context/AuthContext'; // Import useAuth
 
 const placeholderArtwork = require('../assets/images/albums/placeholder.jpg');
 
@@ -32,6 +33,9 @@ const ModalMusicPlayer = ({ navigation }) => {
     currentIndex     
   } = usePlayer();
 
+  // Auth context state for likes
+  const { likedSongIds, likeSong, unlikeSong, isAuthenticated } = useAuth(); // Get like state and functions
+
   // Local state for UI interaction
   const [isSeeking, setIsSeeking] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
@@ -44,6 +48,9 @@ const ModalMusicPlayer = ({ navigation }) => {
   const currentPosition = func.formatTime(positionMillis); 
   const totalDuration = func.formatTime(durationMillis); 
   const sliderProgress = durationMillis > 0 ? positionMillis / durationMillis : 0;
+
+  // Determine if the current track is liked
+  const isLiked = currentTrack ? likedSongIds.has(currentTrack.id) : false;
 
   // Effect to update slider based on playback status
   useEffect(() => {
@@ -93,19 +100,29 @@ const ModalMusicPlayer = ({ navigation }) => {
 
   // Handlers for UI-only Shuffle/Repeat toggles
   const handleToggleShuffle = () => {
-    if (disableControls) return; // Prevent toggle if controls are disabled
+    if (disableControls) return; 
     setIsShuffleActive(prev => !prev);
-    console.log('Shuffle Toggled (UI Only)'); // Optional log
+    console.log('Shuffle Toggled (UI Only)'); 
   };
 
   const handleToggleRepeat = () => {
-    if (disableControls) return; // Prevent toggle if controls are disabled
+    if (disableControls) return; 
     setRepeatMode(prev => {
       if (prev === 'off') return 'queue';
       if (prev === 'queue') return 'track';
-      return 'off'; // Cycle back to 'off' from 'track'
+      return 'off'; 
     });
-    console.log('Repeat Toggled (UI Only)'); // Optional log
+    console.log('Repeat Toggled (UI Only)'); 
+  };
+
+  // Handler for Like button
+  const handleToggleLike = () => {
+    if (!currentTrack || !isAuthenticated) return; // Need track and user auth
+    if (isLiked) {
+      unlikeSong(currentTrack.id);
+    } else {
+      likeSong(currentTrack.id);
+    }
   };
 
   // Determine disabled states
@@ -134,10 +151,12 @@ const ModalMusicPlayer = ({ navigation }) => {
   const { title, artist, artwork, album } = currentTrack; 
   const imageSource = artwork ? { uri: artwork } : placeholderArtwork;
 
-  // Determine icon colors based on state
+  // Determine icon colors and names based on state
   const shuffleColor = isShuffleActive ? colors.brandPrimary : (disableControls ? colors.greyInactive : colors.white);
   const repeatColor = repeatMode !== 'off' ? colors.brandPrimary : (disableControls ? colors.greyInactive : colors.white);
   const repeatIconName = repeatMode === 'track' ? 'repeat-once' : 'repeat';
+  const likeIconName = isLiked ? 'heart' : 'heart-outline';
+  const likeIconColor = isLiked ? colors.brandPrimary : colors.greyInactive;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -163,8 +182,17 @@ const ModalMusicPlayer = ({ navigation }) => {
            <Text style={styles.titleText} numberOfLines={1}>{title}</Text>
            <Text style={styles.artistText} numberOfLines={1}>{artist}</Text>
         </View>
-         <TouchableOpacity onPress={() => console.log('Like')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-           <Icon name="heart-outline" size={24} color={colors.greyInactive} />
+         {/* Like Button */}
+         <TouchableOpacity 
+           onPress={handleToggleLike} // Use new handler
+           disabled={!isAuthenticated || disableControls} // Disable if not logged in or loading
+           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+         >
+           <Icon 
+             name={likeIconName} // Use dynamic icon name
+             size={24} 
+             color={likeIconColor} // Use dynamic color
+           />
          </TouchableOpacity>
       </View>
 
@@ -193,14 +221,14 @@ const ModalMusicPlayer = ({ navigation }) => {
       <View style={styles.controlsContainer}>
          {/* Shuffle Button */}
          <TouchableOpacity 
-           onPress={handleToggleShuffle} // Use new handler
+           onPress={handleToggleShuffle} 
            disabled={disableControls} 
            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
          >
            <Icon 
              name="shuffle-variant" 
              size={24} 
-             color={shuffleColor} // Use dynamic color
+             color={shuffleColor} 
            />
          </TouchableOpacity>
 
@@ -241,14 +269,14 @@ const ModalMusicPlayer = ({ navigation }) => {
 
          {/* Repeat Button */}
          <TouchableOpacity 
-           onPress={handleToggleRepeat} // Use new handler
+           onPress={handleToggleRepeat} 
            disabled={disableControls} 
            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
          >
            <Icon 
-             name={repeatIconName} // Use dynamic icon name
+             name={repeatIconName} 
              size={24} 
-             color={repeatColor} // Use dynamic color
+             color={repeatColor} 
            />
          </TouchableOpacity>
       </View>

@@ -10,8 +10,11 @@ export const AuthContext = createContext({
   isAuthenticated: false,
   token: null,
   user: null,
-  login: () => {},
-  logout: () => {},
+  likedSongIds: new Set(), // Add likedSongIds state
+  login: async () => {},
+  logout: async () => {},
+  likeSong: async (songId) => {}, // Add likeSong function
+  unlikeSong: async (songId) => {}, // Add unlikeSong function
   loading: true,
   loadingState: LOADING_STATES.INITIAL
 });
@@ -20,6 +23,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
+  const [likedSongIds, setLikedSongIds] = useState(new Set()); // State for liked song IDs
   const [loading, setLoading] = useState(true);
   const [loadingState, setLoadingState] = useState(LOADING_STATES.INITIAL);
   const { showToast } = useToast();
@@ -32,6 +36,71 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     setAuthToken(token);
   }, [token]);
+
+  // Fetch liked songs when authenticated
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      fetchLikedSongs();
+    } else {
+      // Clear liked songs if user logs out
+      setLikedSongIds(new Set());
+    }
+  }, [isAuthenticated, token]); // Re-run if auth state changes
+
+  const fetchLikedSongs = async () => {
+    console.log('[AuthContext] Fetching liked songs...');
+    try {
+      const ids = await apiService.user.getLikes(); // Assumes apiService is updated
+      setLikedSongIds(new Set(ids));
+      console.log(`[AuthContext] Fetched ${ids.length} liked song IDs.`);
+    } catch (error) {
+      console.error('[AuthContext] Error fetching liked songs:', error);
+      // Don't necessarily show a toast for this, could be noisy
+      // showToast('error', 'Error', 'Could not fetch liked songs.');
+      setLikedSongIds(new Set()); // Reset on error
+    }
+  };
+
+  const likeSong = async (songId) => {
+    if (!isAuthenticated || !songId) return;
+    console.log(`[AuthContext] Liking song ${songId}...`);
+    try {
+      await apiService.user.likeSong(songId); // Assumes apiService is updated
+      // Optimistic update: add immediately
+      setLikedSongIds(prev => new Set(prev).add(songId));
+      console.log(`[AuthContext] Song ${songId} liked (optimistic).`);
+      // Optional: show subtle feedback instead of toast
+      // showToast('success', 'Liked', 'Song added to your likes.');
+    } catch (error) {
+      console.error(`[AuthContext] Error liking song ${songId}:`, error);
+      showToast('error', 'Error', 'Could not like song.');
+      // Revert optimistic update if needed, though unlikely necessary if API handles conflicts
+      // fetchLikedSongs(); // Or refetch to be sure
+    }
+  };
+
+  const unlikeSong = async (songId) => {
+    if (!isAuthenticated || !songId) return;
+    console.log(`[AuthContext] Unliking song ${songId}...`);
+    try {
+      await apiService.user.unlikeSong(songId); // Assumes apiService is updated
+      // Optimistic update: remove immediately
+      setLikedSongIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(songId);
+        return newSet;
+      });
+      console.log(`[AuthContext] Song ${songId} unliked (optimistic).`);
+      // Optional: show subtle feedback
+      // showToast('info', 'Unliked', 'Song removed from your likes.');
+    } catch (error) {
+      console.error(`[AuthContext] Error unliking song ${songId}:`, error);
+      showToast('error', 'Error', 'Could not unlike song.');
+      // Revert optimistic update if needed
+      // fetchLikedSongs(); // Or refetch to be sure
+    }
+  };
+
 
   const checkAuthState = async () => {
     setLoadingState(LOADING_STATES.AUTH_CHECK);
@@ -47,20 +116,22 @@ export const AuthProvider = ({ children }) => {
         setToken(storedToken);
         setUser(storedUser);
         setIsAuthenticated(true);
+        // fetchLikedSongs(); // Moved to useEffect based on isAuthenticated
         console.log('[AuthContext] User is authenticated from storage.');
       } else {
          console.log('[AuthContext] No valid token/user found in storage.');
-         // Ensure state is cleared if storage is inconsistent
          setUser(null);
          setToken(null);
          setIsAuthenticated(false);
+         setLikedSongIds(new Set()); // Clear likes if not authenticated
       }
     } catch (error) {
       console.error('[AuthContext] Error checking auth state:', error);
       setUser(null);
       setToken(null);
       setIsAuthenticated(false);
-      showToast('error', 'Auth Error', AUTH_MESSAGES.SERVER_ERROR); 
+      setLikedSongIds(new Set()); // Clear likes on error
+      showToast('error', 'Auth Error', AUTH_MESSAGES.SERVER_ERROR);
     } finally {
       setLoadingState(LOADING_STATES.NONE);
       setLoading(false);
@@ -79,13 +150,12 @@ export const AuthProvider = ({ children }) => {
       console.log('[AuthContext] Token and user saved to storage.');
       setUser(userData);
       setToken(authToken);
-      setIsAuthenticated(true);
+      setIsAuthenticated(true); // This will trigger the useEffect to fetch likes
       console.log('[AuthContext] Login successful, state updated.');
-      showToast('success', 'Login Successful', AUTH_MESSAGES.LOGIN_SUCCESS); 
+      showToast('success', 'Login Successful', AUTH_MESSAGES.LOGIN_SUCCESS);
     } catch (error) {
       console.error('[AuthContext] Error during login:', error);
-      showToast('error', 'Login Error', AUTH_MESSAGES.SERVER_ERROR); 
-      // Clear potentially partially saved data on login error? Maybe not needed.
+      showToast('error', 'Login Error', AUTH_MESSAGES.SERVER_ERROR);
       throw error; // Re-throw for the calling screen
     } finally {
       setLoadingState(LOADING_STATES.NONE);
@@ -95,36 +165,28 @@ export const AuthProvider = ({ children }) => {
 
   const handleLogout = async () => {
     console.log('[AuthContext] Attempting logout...');
-    setLoadingState(LOADING_STATES.LOGOUT); // Set loading state immediately
+    setLoadingState(LOADING_STATES.LOGOUT);
     try {
-      // Call API logout if needed - currently simulated
       console.log('[AuthContext] Calling simulated API logout...');
       await apiService.auth.logout().catch((apiErr) => {
          console.warn('[AuthContext] Simulated API logout failed (ignored):', apiErr);
-      }); 
+      });
       console.log('[AuthContext] Simulated API logout finished.');
-      
-      // Clear local storage
+
       console.log('[AuthContext] Clearing token storage...');
       await tokenStorage.clearStorage();
       console.log('[AuthContext] Token storage cleared successfully.');
-      
-      // Clear app state
-      console.log('[AuthContext] Clearing app state (user, token, isAuthenticated)...');
+
+      console.log('[AuthContext] Clearing app state (user, token, isAuthenticated, likedSongIds)...');
       setUser(null);
       setToken(null);
-      setIsAuthenticated(false);
+      setIsAuthenticated(false); // This will trigger the useEffect to clear likes
+      // setLikedSongIds(new Set()); // Also cleared by useEffect
       console.log('[AuthContext] App state cleared.');
-      showToast('success', 'Logout Successful', AUTH_MESSAGES.LOGOUT_SUCCESS); 
+      showToast('success', 'Logout Successful', AUTH_MESSAGES.LOGOUT_SUCCESS);
     } catch (error) {
       console.error('[AuthContext] Error during logout:', error);
-      // Attempt to clear state even if storage fails? Risky if storage is needed later.
-      // Let's log the error and show toast, but state might remain logged in.
-      showToast('error', 'Logout Error', AUTH_MESSAGES.SERVER_ERROR); 
-      // Consider resetting state here too for robustness?
-      // setUser(null);
-      // setToken(null);
-      // setIsAuthenticated(false);
+      showToast('error', 'Logout Error', AUTH_MESSAGES.SERVER_ERROR);
     } finally {
       setLoadingState(LOADING_STATES.NONE);
       console.log('[AuthContext] Logout attempt finished.');
@@ -133,11 +195,8 @@ export const AuthProvider = ({ children }) => {
 
   // Keep the loading screen logic
   if (loading || (loadingState !== LOADING_STATES.NONE && loadingState !== LOADING_STATES.AUTH_CHECK && !isAuthenticated)) {
-     // Show loading screen on initial load, or during login/signup/logout if not already authenticated
-     // Avoid showing loading screen during background auth check if user is already authenticated
     return <LoadingScreen message={getLoadingMessage(loadingState)} />;
   }
-
 
   return (
     <AuthContext.Provider
@@ -145,10 +204,13 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         token,
         user,
+        likedSongIds, // Provide liked IDs
         login: handleLogin,
         logout: handleLogout,
-        loading, // This is mainly for initial load
-        loadingState // This reflects ongoing operations like login/logout
+        likeSong, // Provide like function
+        unlikeSong, // Provide unlike function
+        loading,
+        loadingState
       }}
     >
       {children}

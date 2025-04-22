@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const { sequelize } = require('./models');
 const authRoutes = require('./routes/auth');
 const musicRoutes = require('./routes/music');
+const userRoutes = require('./routes/user'); // Import user routes
 const os = require('os');
 
 const app = express();
@@ -43,7 +44,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api', musicRoutes); // New music routes
+app.use('/api', musicRoutes); // Music routes (e.g., /api/songs, /api/artists)
+app.use('/api/user', userRoutes); // Mount user routes (e.g., /api/user/likes)
 
 // Health check route with detailed info
 app.get('/health', (req, res) => {
@@ -92,7 +94,7 @@ sequelize.sync().then(() => {
         console.log('\nNetwork URLs for', ip + ':');
         console.log(` - API Base URL: http://${ip}:${port}/api`);
         console.log(` - Health check: http://${ip}:${port}/health`);
-        console.log(` - Documentation: http://${ip}:${port}/api/docs`);
+        // console.log(` - Documentation: http://${ip}:${port}/api/docs`); // Commented out if no docs yet
       });
     }
     
@@ -106,6 +108,10 @@ sequelize.sync().then(() => {
     console.log('   GET  /api/albums');
     console.log('   GET  /api/songs');
     console.log('   GET  /api/songs/popular');
+    console.log('\n - User:'); // Added User endpoints info
+    console.log('   GET  /api/user/likes');
+    console.log('   POST /api/user/likes');
+    console.log('   DELETE /api/user/likes/:songId');
     console.log('\n=========================');
   });
 }).catch(err => {

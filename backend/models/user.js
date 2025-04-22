@@ -7,6 +7,14 @@ module.exports = (sequelize, DataTypes) => {
       // Define associations here when we add more models
       // For example:
       // User.hasMany(models.Playlist)
+
+      // User can like many Songs through UserLike table
+      User.belongsToMany(models.Song, { 
+        through: models.UserLike, 
+        foreignKey: 'userId', // key in the UserLike table that points to User
+        otherKey: 'songId',   // key in the UserLike table that points to Song
+        as: 'likedSongs'      // Alias to use when fetching liked songs
+      });
     }
   }
   

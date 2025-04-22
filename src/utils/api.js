@@ -60,6 +60,7 @@ api.interceptors.response.use(
       return Promise.reject(AUTH_MESSAGES.NETWORK_ERROR);
     }
 
+    // Return the specific message from the backend if available
     return Promise.reject(
       error.response.data?.message || error.message || AUTH_MESSAGES.SERVER_ERROR
     );
@@ -145,7 +146,6 @@ export const apiService = {
         throw error;
       }
     },
-    // Add function to get artist's albums
     async getArtistAlbums(id) {
       try {
         const response = await api.get(`/artists/${id}/albums`);
@@ -155,8 +155,7 @@ export const apiService = {
         throw error;
       }
     },
-    // Add function to get artist's top songs
-    async getArtistTopSongs(id, limit = 10) { // Add optional limit parameter
+    async getArtistTopSongs(id, limit = 10) {
       try {
         const response = await api.get(`/artists/${id}/songs?limit=${limit}`);
         return response.data;
@@ -190,6 +189,36 @@ export const apiService = {
         return response.data;
       } catch (error) {
         console.error('Search API error:', error);
+        throw error;
+      }
+    }
+  },
+  // Add user service for like functionality
+  user: {
+    async getLikes() {
+      try {
+        const response = await api.get('/user/likes');
+        return response.data; // Should return an array of song IDs
+      } catch (error) {
+        console.error('API Error fetching likes:', error);
+        throw error;
+      }
+    },
+    async likeSong(songId) {
+      try {
+        const response = await api.post('/user/likes', { songId });
+        return response.data;
+      } catch (error) {
+        console.error(`API Error liking song ${songId}:`, error);
+        throw error;
+      }
+    },
+    async unlikeSong(songId) {
+      try {
+        const response = await api.delete(`/user/likes/${songId}`);
+        return response.data;
+      } catch (error) {
+        console.error(`API Error unliking song ${songId}:`, error);
         throw error;
       }
     }
