@@ -24,8 +24,9 @@ module.exports = {
         artistId: albumMap['Abbey Road'].artistId,
         duration: 259,
         trackNumber: 1,
-        previewUrl: testPreviewUrl, // Updated
+        previewUrl: testPreviewUrl, 
         popularity: 90,
+        mood: 'calm', // Added mood
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -35,8 +36,9 @@ module.exports = {
         artistId: albumMap['Abbey Road'].artistId,
         duration: 183,
         trackNumber: 2,
-        previewUrl: testPreviewUrl, // Updated
+        previewUrl: testPreviewUrl, 
         popularity: 88,
+        mood: 'calm', // Added mood
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -48,8 +50,9 @@ module.exports = {
         artistId: albumMap['The Dark Side of the Moon'].artistId,
         duration: 163,
         trackNumber: 1,
-        previewUrl: testPreviewUrl, // Updated
+        previewUrl: testPreviewUrl, 
         popularity: 85,
+        mood: 'calm', // Added mood
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -59,8 +62,9 @@ module.exports = {
         artistId: albumMap['The Dark Side of the Moon'].artistId,
         duration: 421,
         trackNumber: 2,
-        previewUrl: testPreviewUrl, // Updated
+        previewUrl: testPreviewUrl, 
         popularity: 92,
+        mood: 'neutral', // Added mood (default)
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -72,8 +76,9 @@ module.exports = {
         artistId: albumMap['A Night at the Opera'].artistId,
         duration: 354,
         trackNumber: 1,
-        previewUrl: testPreviewUrl, // Updated
+        previewUrl: testPreviewUrl, 
         popularity: 98,
+        mood: 'happy', // Added mood (more energetic?)
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -83,8 +88,9 @@ module.exports = {
         artistId: albumMap['A Night at the Opera'].artistId,
         duration: 219,
         trackNumber: 2,
-        previewUrl: testPreviewUrl, // Updated
+        previewUrl: testPreviewUrl, 
         popularity: 87,
+        mood: 'calm', // Added mood
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -96,8 +102,9 @@ module.exports = {
         artistId: albumMap['The Wall'].artistId,
         duration: 239,
         trackNumber: 1,
-        previewUrl: testPreviewUrl, // Updated
+        previewUrl: testPreviewUrl, 
         popularity: 95,
+        mood: 'neutral', // Added mood
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -107,8 +114,9 @@ module.exports = {
         artistId: albumMap['The Wall'].artistId,
         duration: 382,
         trackNumber: 2,
-        previewUrl: testPreviewUrl, // Updated
+        previewUrl: testPreviewUrl, 
         popularity: 94,
+        mood: 'calm', // Added mood
         createdAt: new Date(),
         updatedAt: new Date()
       }

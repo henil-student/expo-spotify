@@ -82,6 +82,14 @@ module.exports = (sequelize, DataTypes) => {
     isPlayable: {
       type: DataTypes.BOOLEAN,
       defaultValue: true
+    },
+    mood: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      validate: {
+        isIn: [['happy', 'calm', 'neutral']] // Define valid mood values
+      },
+      defaultValue: 'neutral'
     }
   }, {
     sequelize,
@@ -94,6 +102,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       {
         fields: ['artistId']
+      },
+      {
+        fields: ['mood'] // Add index for mood queries
       }
     ]
   });

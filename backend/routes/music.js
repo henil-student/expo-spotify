@@ -26,6 +26,7 @@ router.delete('/albums/:id', authenticate, albumController.deleteAlbum);
 // Song routes
 router.get('/songs', songController.getAllSongs);
 router.get('/songs/popular', songController.getPopularSongs);
+router.get('/songs/mood/:mood', songController.getSongsByMood); // Added route for fetching songs by mood
 router.get('/songs/:id', songController.getSongById);
 router.post('/songs', authenticate, songController.createSong);
 router.put('/songs/:id', authenticate, songController.updateSong);

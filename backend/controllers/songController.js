@@ -1,4 +1,5 @@
 const { Song, Album, Artist } = require('../models');
+const { Op } = require('sequelize'); // Import Op for operators
 
 exports.getAllSongs = async (req, res) => {
   try {
@@ -63,7 +64,8 @@ exports.createSong = async (req, res) => {
       audioUrl,
       previewUrl,
       explicit,
-      isPlayable
+      isPlayable,
+      mood // Include mood in creation
     } = req.body;
 
     if (!title || !albumId || !artistId) {
@@ -85,6 +87,12 @@ exports.createSong = async (req, res) => {
       return res.status(404).json({ message: 'Artist not found' });
     }
 
+    // Validate mood if provided
+    const validMoods = ['happy', 'calm', 'neutral'];
+    if (mood && !validMoods.includes(mood)) {
+      return res.status(400).json({ message: `Invalid mood. Must be one of: ${validMoods.join(', ')}` });
+    }
+
     const song = await Song.create({
       title,
       albumId,
@@ -94,7 +102,8 @@ exports.createSong = async (req, res) => {
       audioUrl,
       previewUrl,
       explicit,
-      isPlayable
+      isPlayable,
+      mood: mood || 'neutral' // Use provided mood or default
     });
 
     // Return created song with relationships
@@ -130,12 +139,19 @@ exports.updateSong = async (req, res) => {
       audioUrl,
       previewUrl,
       explicit,
-      isPlayable
+      isPlayable,
+      mood // Include mood in update
     } = req.body;
 
     const song = await Song.findByPk(id);
     if (!song) {
       return res.status(404).json({ message: 'Song not found' });
+    }
+
+    // Validate mood if provided
+    const validMoods = ['happy', 'calm', 'neutral'];
+    if (mood && !validMoods.includes(mood)) {
+      return res.status(400).json({ message: `Invalid mood. Must be one of: ${validMoods.join(', ')}` });
     }
 
     await song.update({
@@ -145,7 +161,8 @@ exports.updateSong = async (req, res) => {
       audioUrl: audioUrl || song.audioUrl,
       previewUrl: previewUrl || song.previewUrl,
       explicit: explicit !== undefined ? explicit : song.explicit,
-      isPlayable: isPlayable !== undefined ? isPlayable : song.isPlayable
+      isPlayable: isPlayable !== undefined ? isPlayable : song.isPlayable,
+      mood: mood || song.mood // Update mood if provided
     });
 
     // Return updated song with relationships
@@ -211,5 +228,47 @@ exports.getPopularSongs = async (req, res) => {
   } catch (error) {
     console.error('Error fetching popular songs:', error);
     res.status(500).json({ message: 'Error fetching popular songs' });
+  }
+};
+
+// New function to get songs by mood
+exports.getSongsByMood = async (req, res) => {
+  try {
+    const { mood } = req.params;
+    const validMoods = ['happy', 'calm', 'neutral'];
+
+    // Validate mood parameter
+    if (!validMoods.includes(mood)) {
+      return res.status(400).json({ message: `Invalid mood parameter. Must be one of: ${validMoods.join(', ')}` });
+    }
+
+    const songs = await Song.findAll({
+      where: {
+        mood: mood
+      },
+      include: [
+        {
+          model: Artist,
+          as: 'artist',
+          attributes: ['id', 'name']
+        },
+        {
+          model: Album,
+          as: 'album',
+          attributes: ['id', 'title', 'coverUrl']
+        }
+      ],
+      order: [['popularity', 'DESC']], // Optionally order by popularity or randomly
+      limit: 50 // Limit the number of songs returned
+    });
+
+    if (!songs || songs.length === 0) {
+      return res.status(404).json({ message: `No songs found for mood: ${mood}` });
+    }
+
+    res.json(songs);
+  } catch (error) {
+    console.error(`Error fetching songs for mood ${req.params.mood}:`, error);
+    res.status(500).json({ message: 'Error fetching songs by mood' });
   }
 };
