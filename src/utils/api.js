@@ -180,6 +180,25 @@ export const apiService = {
         throw error;
       }
     },
+    async fetchSongsByMood(mood) { // Added function
+      const validMoods = ['happy', 'calm', 'neutral'];
+      if (!validMoods.includes(mood)) {
+        console.error(`Invalid mood provided to fetchSongsByMood: ${mood}`);
+        throw new Error(`Invalid mood: ${mood}`);
+      }
+      try {
+        const response = await api.get(`/songs/mood/${mood}`);
+        return response.data; // Returns array of songs or throws 404 if none found
+      } catch (error) {
+        // If backend returns 404 (no songs found), don't throw, return empty array
+        if (error.response && error.response.status === 404) {
+          console.log(`No songs found for mood: ${mood}`);
+          return []; 
+        }
+        console.error(`API Error fetching songs for mood ${mood}:`, error);
+        throw error; // Re-throw other errors
+      }
+    },
     async searchAll(query) {
       if (!query || query.trim() === '') {
         return { artists: [], albums: [], songs: [] };

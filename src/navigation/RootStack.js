@@ -17,6 +17,7 @@ import TabNavigation from './TabNavigation';
 // screens
 import ModalMusicPlayer from '../screens/ModalMusicPlayer';
 import ModalMoreOptions from '../screens/ModalMoreOptions';
+import MoodDetectorScreen from '../screens/MoodDetectorScreen'; // Import MoodDetectorScreen
 import Login from '../screens/Login';
 import Signup from '../screens/Signup';
 
@@ -52,22 +53,35 @@ function RootStack() {
         </>
       ) : (
         <>
+          {/* Main Tab Navigator */}
           <Stack.Screen name="MainTab" component={TabNavigation} />
-          <Stack.Screen
-            name="ModalMusicPlayer"
-            component={ModalMusicPlayer}
-            options={{
-              presentation: 'fullScreenModal'
-            }}
-          />
-          <Stack.Screen
-            name="ModalMoreOptions"
-            component={ModalMoreOptions}
-            options={{
-              animation: 'slide_from_bottom',
-              presentation: 'transparentModal'
-            }}
-          />
+
+          {/* Modal Screens */}
+          <Stack.Group screenOptions={{ presentation: 'modal' }}>
+            <Stack.Screen
+              name="ModalMusicPlayer"
+              component={ModalMusicPlayer}
+              options={{
+                presentation: 'fullScreenModal' // Keep fullscreen for player
+              }}
+            />
+            <Stack.Screen
+              name="ModalMoreOptions"
+              component={ModalMoreOptions}
+              options={{
+                animation: 'slide_from_bottom',
+                presentation: 'transparentModal' // Keep transparent for options
+              }}
+            />
+            <Stack.Screen
+              name="MoodDetector" // Define screen name
+              component={MoodDetectorScreen}
+              options={{
+                // Default modal presentation is fine, or customize animation
+                animation: 'slide_from_bottom', 
+              }}
+            />
+          </Stack.Group>
         </>
       )}
     </Stack.Navigator>
